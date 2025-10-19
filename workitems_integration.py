@@ -28,7 +28,9 @@ import os
 from typing import Optional
 
 from robocorp.workitems._adapters._base import BaseAdapter
-from scripts.config import get_adapter_config, validate_adapter_config
+# Import scripts.config lazily inside initialize_adapter to avoid import-time
+# dependency on the scripts package for lightweight dev tasks (like seeding
+# the SQLite DB) that don't need adapter configuration.
 
 LOGGER = logging.getLogger(__name__)
 
@@ -100,9 +102,20 @@ def initialize_adapter() -> BaseAdapter:
         adapter = initialize_adapter()
         # Adapter is now ready to use
     """
+    # Import adapter configuration utilities lazily so importing this module
+    # doesn't fail when `scripts.config` is not present in minimal dev setups.
+    try:
+        from scripts.config import get_adapter_config, validate_adapter_config
+    except Exception as e:  # pragma: no cover - optional in some environments
+        LOGGER.error("Missing adapter configuration utilities: %s", e)
+        raise ImportError(
+            "Required module 'scripts.config' not found. "
+            "Ensure you're running from project root or that scripts/config.py exists."
+        ) from e
+
     # Get adapter configuration
     config = get_adapter_config()
-    adapter_class_path = config["adapter_class"]
+    adapter_class_path = str(config["adapter_class"])
 
     # Validate adapter-specific configuration
     validate_adapter_config(adapter_class_path, config)
