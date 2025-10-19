@@ -26,6 +26,16 @@ This repository provides custom adapters for Robocorp's workitems library, enabl
 - `docs/`: Implementation guides and architecture documentation.
 
 ## Getting Started
+
+### Quick Integration
+To use these adapters in your own Robocorp project:
+
+1. **Clone this repository** into your project or workspace.
+2. **Change your adapter class name** to one of the provided adapters (e.g., `robocorp_adapters_custom.sqlite_adapter.SQLiteAdapter` or `robocorp_adapters_custom.redis_adapter.RedisAdapter`).
+	- Set the `RC_WORKITEM_ADAPTER` environment variable accordingly.
+3. **Alternatively**, use one of the pre-configured environment JSON files in `devdata/` to set all required variables for SQLite or Redis. Simply reference the desired file when running RCC or your robot tasks.
+
+No code changes are required—just update your environment configuration and you're ready to go!
 ### 1. Environment Setup
 - Clone the repository and install dependencies using the provided `conda.yaml`.
 - Configure environment variables for your chosen adapter (see below).
