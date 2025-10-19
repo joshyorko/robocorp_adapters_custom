@@ -26,7 +26,12 @@ from robocorp.workitems._exceptions import EmptyQueue
 from .exceptions import AdapterError, DatabaseTemporarilyUnavailable, ConnectionPoolExhausted, SchemaVersionMismatch
 
 from .sqlite_adapter import SQLiteAdapter
-from .redis_adapter import RedisAdapter  # T059
+try:
+    # RedisAdapter is optional for local/dev SQLite runs. Import lazily and
+    # allow the package to be imported even when `redis` is not installed.
+    from .redis_adapter import RedisAdapter  # T059
+except Exception:  # pragma: no cover - optional dependency may be missing in some envs
+    RedisAdapter = None
 
 # T038-T040: Export adapter integration utilities
 from .workitems_integration import (
@@ -45,7 +50,7 @@ __all__ = [
     "ConnectionPoolExhausted",
     "SchemaVersionMismatch",
     "SQLiteAdapter",
-    "RedisAdapter",  # T059
+    "RedisAdapter",  # T059 (may be None if redis is not installed)
     "get_adapter_instance",
     "initialize_adapter",
     "load_adapter_class",
