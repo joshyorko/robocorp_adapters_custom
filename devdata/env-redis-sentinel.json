@@ -1,6 +1,6 @@
 {
   "_comment": "Redis Sentinel configuration example for automatic failover",
-  "RC_WORKITEM_ADAPTER": "custom_adapters.redis_adapter.RedisAdapter",
+  "RC_WORKITEM_ADAPTER": "robocorp_adapters_custom.redis_adapter.RedisAdapter",
   "REDIS_HOST": "redis-sentinel-1.example.com",
   "REDIS_PORT": "26379",
   "REDIS_DB": "0",

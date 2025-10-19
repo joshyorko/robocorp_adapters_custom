@@ -12,7 +12,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from custom_adapters._sqlite import SQLiteAdapter
+from robocorp_adapters_custom._sqlite import SQLiteAdapter
 
 
 def seed_producer_workitem():

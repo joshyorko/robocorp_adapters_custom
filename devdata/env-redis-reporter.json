@@ -1,5 +1,5 @@
 {
-  "RC_WORKITEM_ADAPTER": "custom_adapters.redis_adapter.RedisAdapter",
+  "RC_WORKITEM_ADAPTER": "robocorp_adapters_custom.redis_adapter.RedisAdapter",
   "RC_WORKITEM_DB_PATH": "devdata/work_items.db",
   "REDIS_HOST": "localhost",
   "REDIS_PORT": "6379",

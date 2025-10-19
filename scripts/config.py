@@ -50,7 +50,7 @@ def get_adapter_config() -> Dict[str, object]:
     if not config["adapter_class"]:
         raise ValueError(
             "RC_WORKITEM_ADAPTER environment variable is required. "
-            "Example: custom_adapters.sqlite_adapter.SQLiteAdapter"
+            "Example: robocorp_adapters_custom.sqlite_adapter.SQLiteAdapter"
         )
 
     return config

@@ -3,7 +3,7 @@
 import os, sys, json, base64, argparse
 from pathlib import Path
 
-# Add project root to path so "custom_adapters" can be imported
+# Add project root to path so "robocorp_adapters_custom" can be imported
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 def load_env(env_json: Path):
@@ -23,7 +23,7 @@ def main():
     load_env(Path(args.env))
 
     # Import your adapter after env is loaded
-    from custom_adapters.redis_adapter import RedisAdapter
+    from robocorp_adapters_custom.redis_adapter import RedisAdapter
 
     queue = os.getenv("RC_WORKITEM_QUEUE_NAME", "default")
     print(f"Seeding Redis queue: {queue}")

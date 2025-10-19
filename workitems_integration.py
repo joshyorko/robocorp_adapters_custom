@@ -6,13 +6,13 @@ with the existing RPA tasks without modifying task code.
 T038-T040: Adapter initialization for Producer and Consumer tasks
 
 Environment Variables:
-    RC_WORKITEM_ADAPTER: Full class path to adapter (e.g., "custom_adapters.sqlite_adapter.SQLiteAdapter")
+    RC_WORKITEM_ADAPTER: Full class path to adapter (e.g., "robocorp_adapters_custom.sqlite_adapter.SQLiteAdapter")
     RC_WORKITEM_DB_PATH: Database path for SQLite/PostgreSQL adapters
     REDIS_HOST: Redis host for Redis adapter
     POSTGRES_CONNECTION_STRING: PostgreSQL connection string
 
 Usage:
-    from custom_adapters.workitems_integration import get_adapter_instance
+    from robocorp_adapters_custom.workitems_integration import get_adapter_instance
 
     # Get configured adapter
     adapter = get_adapter_instance()
@@ -44,7 +44,7 @@ def load_adapter_class(adapter_class_path: str) -> type[BaseAdapter]:
 
     Args:
         adapter_class_path: Full Python path to adapter class
-                           (e.g., "custom_adapters.sqlite_adapter.SQLiteAdapter")
+                           (e.g., "robocorp_adapters_custom.sqlite_adapter.SQLiteAdapter")
 
     Returns:
         Adapter class (not instantiated)
@@ -55,7 +55,7 @@ def load_adapter_class(adapter_class_path: str) -> type[BaseAdapter]:
         ValueError: If class doesn't inherit from BaseAdapter
 
     Example:
-        adapter_cls = load_adapter_class("custom_adapters.sqlite_adapter.SQLiteAdapter")
+        adapter_cls = load_adapter_class("robocorp_adapters_custom.sqlite_adapter.SQLiteAdapter")
         adapter = adapter_cls()  # Instantiate with __init__
     """
     try:

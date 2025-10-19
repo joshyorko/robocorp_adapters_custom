@@ -11,7 +11,7 @@ Features:
 - Orphaned work item recovery
 
 Usage:
-    from custom_adapters.sqlite_adapter import SQLiteAdapter
+    from robocorp_adapters_custom.sqlite_adapter import SQLiteAdapter
 
     adapter = SQLiteAdapter()
     item_id = adapter.reserve_input()

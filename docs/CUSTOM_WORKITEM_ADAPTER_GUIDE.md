@@ -221,7 +221,7 @@ This adapter stores work items in SQLite with file attachments on disk.
 #### Step 1: Create Adapter Class
 
 ```python
-# src/custom_adapters/sqlite_adapter.py
+# src/robocorp_adapters_custom/sqlite_adapter.py
 
 import json
 import logging
@@ -503,7 +503,7 @@ There are two ways to use a custom adapter:
 
 ```json
 {
-  "RC_WORKITEM_ADAPTER": "custom_adapters.sqlite_adapter.SQLiteAdapter",
+  "RC_WORKITEM_ADAPTER": "robocorp_adapters_custom.sqlite_adapter.SQLiteAdapter",
   "RC_WORKITEM_DB_PATH": "/path/to/work_items.db",
   "RC_WORKITEM_FILES_DIR": "/path/to/work_item_files",
   "RC_WORKITEM_QUEUE_NAME": "linkedin_jobs"
@@ -514,10 +514,10 @@ There are two ways to use a custom adapter:
 
 ```python
 import os
-from custom_adapters.sqlite_adapter import SQLiteAdapter
+from robocorp_adapters_custom.sqlite_adapter import SQLiteAdapter
 
 # Set before importing workitems
-os.environ["RC_WORKITEM_ADAPTER"] = "custom_adapters.sqlite_adapter.SQLiteAdapter"
+os.environ["RC_WORKITEM_ADAPTER"] = "robocorp_adapters_custom.sqlite_adapter.SQLiteAdapter"
 
 from robocorp import workitems
 from robocorp.tasks import task
@@ -548,7 +548,7 @@ dependencies:
 ```
 linkedin-easy-apply/
 ├── src/
-│   ├── custom_adapters/
+│   ├── robocorp_adapters_custom/
 │   │   ├── __init__.py
 │   │   └── sqlite_adapter.py
 │   └── tasks.py
@@ -566,7 +566,7 @@ linkedin-easy-apply/
 ### Example 1: Redis Queue Adapter
 
 ```python
-# custom_adapters/redis_adapter.py
+# robocorp_adapters_custom/redis_adapter.py
 
 import json
 import logging
@@ -732,7 +732,7 @@ class RedisAdapter(BaseAdapter):
 ### Example 2: RabbitMQ with Celery Integration
 
 ```python
-# custom_adapters/celery_adapter.py
+# robocorp_adapters_custom/celery_adapter.py
 
 import json
 import logging
@@ -905,7 +905,7 @@ class CeleryAdapter(BaseAdapter):
 import pytest
 import tempfile
 from pathlib import Path
-from custom_adapters.sqlite_adapter import SQLiteAdapter
+from robocorp_adapters_custom.sqlite_adapter import SQLiteAdapter
 from robocorp.workitems._types import State
 
 
@@ -1001,7 +1001,7 @@ def test_producer_consumer_workflow():
         db_path = Path(tmpdir) / "test.db"
         
         # Set environment
-        os.environ["RC_WORKITEM_ADAPTER"] = "custom_adapters.sqlite_adapter.SQLiteAdapter"
+        os.environ["RC_WORKITEM_ADAPTER"] = "robocorp_adapters_custom.sqlite_adapter.SQLiteAdapter"
         os.environ["RC_WORKITEM_DB_PATH"] = str(db_path)
         os.environ["RC_WORKITEM_FILES_DIR"] = str(Path(tmpdir) / "files")
         os.environ["RC_WORKITEM_QUEUE_NAME"] = "test_queue"
@@ -1046,7 +1046,7 @@ def test_producer_consumer_workflow():
 
 ```json
 {
-  "RC_WORKITEM_ADAPTER": "custom_adapters.sqlite_adapter.SQLiteAdapter",
+  "RC_WORKITEM_ADAPTER": "robocorp_adapters_custom.sqlite_adapter.SQLiteAdapter",
   "RC_WORKITEM_DB_PATH": "/data/work_items.db",
   "RC_WORKITEM_FILES_DIR": "/data/work_item_files",
   "RC_WORKITEM_QUEUE_NAME": "linkedin_jobs",
@@ -1070,7 +1070,7 @@ COPY . .
 RUN rcc holotree vars --silent
 
 # Set adapter configuration
-ENV RC_WORKITEM_ADAPTER=custom_adapters.sqlite_adapter.SQLiteAdapter
+ENV RC_WORKITEM_ADAPTER=robocorp_adapters_custom.sqlite_adapter.SQLiteAdapter
 ENV RC_WORKITEM_DB_PATH=/data/work_items.db
 ENV RC_WORKITEM_FILES_DIR=/data/files
 
@@ -1105,7 +1105,7 @@ services:
   producer:
     build: .
     environment:
-      RC_WORKITEM_ADAPTER: custom_adapters.redis_adapter.RedisAdapter
+      RC_WORKITEM_ADAPTER: robocorp_adapters_custom.redis_adapter.RedisAdapter
       REDIS_HOST: redis
       RC_WORKITEM_QUEUE_NAME: linkedin_jobs
     depends_on:
@@ -1115,7 +1115,7 @@ services:
   consumer:
     build: .
     environment:
-      RC_WORKITEM_ADAPTER: custom_adapters.redis_adapter.RedisAdapter
+      RC_WORKITEM_ADAPTER: robocorp_adapters_custom.redis_adapter.RedisAdapter
       REDIS_HOST: redis
       RC_WORKITEM_QUEUE_NAME: linkedin_jobs
     depends_on:

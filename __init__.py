@@ -10,7 +10,7 @@ Available adapters:
 
 Usage:
     Configure adapter via environment variable RC_WORKITEM_ADAPTER:
-    export RC_WORKITEM_ADAPTER="custom_adapters.sqlite_adapter.SQLiteAdapter"
+    export RC_WORKITEM_ADAPTER="robocorp_adapters_custom.sqlite_adapter.SQLiteAdapter"
 
 See quickstart.md for setup guides.
 """

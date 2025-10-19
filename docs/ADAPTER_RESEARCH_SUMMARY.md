@@ -119,7 +119,7 @@ Based on the research, here are viable backends ranked by complexity:
 **Implementation Plan:**
 
 ```python
-# custom_adapters/sqlite_adapter.py
+# robocorp_adapters_custom/sqlite_adapter.py
 
 class SQLiteAdapter(BaseAdapter):
     def __init__(self):
@@ -142,7 +142,7 @@ class SQLiteAdapter(BaseAdapter):
 
 ```json
 {
-  "RC_WORKITEM_ADAPTER": "custom_adapters.sqlite_adapter.SQLiteAdapter",
+  "RC_WORKITEM_ADAPTER": "robocorp_adapters_custom.sqlite_adapter.SQLiteAdapter",
   "RC_WORKITEM_DB_PATH": "src/linkedin_jobs.sqlite",
   "RC_WORKITEM_QUEUE_NAME": "linkedin_jobs"
 }
@@ -164,7 +164,7 @@ All examples are in: `/docs/CUSTOM_WORKITEM_ADAPTER_GUIDE.md`
 
 ## Next Actions
 
-1. **Create SQLiteAdapter** in `src/custom_adapters/`
+1. **Create SQLiteAdapter** in `src/robocorp_adapters_custom/`
 2. **Test with existing workflow**: SearchProducer → AIConsumer
 3. **Benchmark performance**: Compare FileAdapter vs SQLiteAdapter
 4. **Update documentation**: Add adapter usage to main README

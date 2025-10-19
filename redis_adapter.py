@@ -21,7 +21,7 @@ Use Cases:
 - Horizontal scaling across machines
 
 Environment Variables:
-    RC_WORKITEM_ADAPTER: custom_adapters.redis_adapter.RedisAdapter
+    RC_WORKITEM_ADAPTER: robocorp_adapters_custom.redis_adapter.RedisAdapter
     REDIS_HOST: Redis server hostname (default: localhost)
     REDIS_PORT: Redis server port (default: 6379)
     REDIS_DB: Redis database number (default: 0)
@@ -33,7 +33,7 @@ Environment Variables:
 
 Example:
     >>> import os
-    >>> os.environ["RC_WORKITEM_ADAPTER"] = "custom_adapters.redis_adapter.RedisAdapter"
+    >>> os.environ["RC_WORKITEM_ADAPTER"] = "robocorp_adapters_custom.redis_adapter.RedisAdapter"
     >>> os.environ["REDIS_HOST"] = "localhost"
     >>> adapter = RedisAdapter()
     >>> item_id = adapter.create_output("parent", {"data": "test"})
@@ -64,7 +64,7 @@ from .exceptions import (
     DatabaseTemporarilyUnavailable,
     ConnectionPoolExhausted,
 )
-from custom_adapters._utils import with_retry
+from robocorp_adapters_custom._utils import with_retry
 
 LOGGER = logging.getLogger(__name__)
 

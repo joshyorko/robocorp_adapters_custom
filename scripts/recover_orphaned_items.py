@@ -8,7 +8,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from custom_adapters.sqlite_adapter import SQLiteAdapter
+from robocorp_adapters_custom.sqlite_adapter import SQLiteAdapter
 
 def main():
     # Load adapter configuration from environment
