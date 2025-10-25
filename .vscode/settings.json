@@ -1,5 +1,0 @@
-{
-    "python.analysis.extraPaths": [
-        "/var/home/kdlocpanda/second_brain/Areas/RPA/robots/robocorp_adapters_custom/yamls/."
-    ]
-}
