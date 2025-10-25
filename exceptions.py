@@ -1,24 +1,23 @@
 """Custom exceptions for work item adapters.
 
 This module defines custom exception types used by custom adapters.
-The base adapter classes (BaseAdapter, State, etc.) are imported directly
-from robocorp.workitems, not defined here.
-
-Version: 1.0.0
-Date: 2025-10-17
+These exceptions extend the base exception types from robocorp.workitems
+to provide adapter-specific error handling.
 """
 
 
-class AdapterError(Exception):
+class AdapterError(RuntimeError):
     """Base exception for adapter-specific errors.
+
+    Follows Robocorp's pattern of inheriting from RuntimeError for
+    library-specific exceptions that indicate programming errors or
+    unexpected runtime conditions.
 
     Subclass this for adapter-specific error conditions:
         - DatabaseTemporarilyUnavailable
         - ConnectionPoolExhausted
         - SchemaVersionMismatch
     """
-
-    pass
 
 
 class DatabaseTemporarilyUnavailable(AdapterError):
@@ -34,8 +33,6 @@ class DatabaseTemporarilyUnavailable(AdapterError):
     Consumers should retry with exponential backoff.
     """
 
-    pass
-
 
 class ConnectionPoolExhausted(AdapterError):
     """Connection pool has no available connections.
@@ -49,8 +46,6 @@ class ConnectionPoolExhausted(AdapterError):
         - Reduce connection hold time
         - Add more workers
     """
-
-    pass
 
 
 class SchemaVersionMismatch(AdapterError):
@@ -69,5 +64,3 @@ class SchemaVersionMismatch(AdapterError):
         - Run database migration
         - Use correct adapter version
     """
-
-    pass
