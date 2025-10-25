@@ -15,8 +15,11 @@ devTasks:
     shell: python scripts/seed_sqlite_db.py
   SeedRedisDB:
     shell: python scripts/seed_redis_db.py
+  SeedDocDB:
+    shell: python scripts/seed_docdb_db.py
   CheckSQLiteDB:
     shell: python scripts/check_sqlite_db.py
+  
   RecoverOrphanedItems:
     shell: python scripts/recover_orphaned_items.py
   DiagnoseReporterIssue:
