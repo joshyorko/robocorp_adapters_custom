@@ -1,32 +1,4 @@
 {
   "name": "Robocorp Custom Adapters Dev Container",
-  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
-  "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2.12.4": {},
-    "ghcr.io/devcontainers/features/common-utils:2.5.4": {
-      "installZsh": true,
-      "configureZshAsDefaultShell": true,
-      "installOhMyZsh": true,
-      "upgradePackages": "true"
-    }
-  },
-  "runArgs": [
-    "--privileged"
-  ],
-  "remoteUser": "vscode",
-  "postCreateCommand": "curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash; set -e && curl -sS https://webinstall.dev/k9s | sh && curl -LsSf https://astral.sh/uv/install.sh | sh;curl https://install.duckdb.org | sh;rcc config identity -t; curl -o action-server https://cdn.sema4.ai/action-server/releases/latest/linux64/action-server && chmod a+x action-server && mv action-server /usr/local/bin/ && curl -L https://github.com/joshyorko/rcc/releases/download/v18.8.0/rcc-linux64 -o /usr/local/bin/rcc && chmod a+x /usr/local/bin/rcc",
-  "customizations": {
-    "vscode": {
-      "settings": {
-        "terminal.integrated.defaultProfile.linux": "zsh"
-      },
-      "extensions": [
-        "ms-azuretools.vscode-containers",
-        "github.vscode-github-actions",
-        "ms-vscode.vscode-websearchforcopilot",
-        "GitHub.vscode-pull-request-github",
-        "ms-python.python"
-      ]
-    }
-  }
+  "image": "ghcr.io/joshyorko/ror:latest"
 }
