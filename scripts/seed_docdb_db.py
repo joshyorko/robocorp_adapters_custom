@@ -26,13 +26,23 @@ def load_env(env_json: Path):
 
 def main():
     """Main seeding function."""
-    ap = argparse.ArgumentParser(description="Seed Amazon DocumentDB with initial work items.")
-    ap.add_argument("--env", default="devdata/env-docdb-local-producer.json",
-                    help="Environment JSON file that sets DOCDB_* variables")
-    ap.add_argument("--json", default="devdata/work-items-in/test-input-for-producer/work-items.json",
-                    help="Path to work-items.json (array of objects with at least 'payload')")
+    ap = argparse.ArgumentParser(
+        description="Seed Amazon DocumentDB with initial work items."
+    )
+    ap.add_argument(
+        "--env",
+        default="devdata/env-docdb-local-producer.json",
+        help="Environment JSON file that sets DOCDB_* variables",
+    )
+    ap.add_argument(
+        "--json",
+        default="devdata/work-items-in/test-input-for-producer/work-items.json",
+        help="Path to work-items.json (array of objects with at least 'payload')",
+    )
     ap.add_argument("--queue", help="Override queue name from environment")
-    ap.add_argument("--callid-field", help="Field name to use as callid for duplicate prevention")
+    ap.add_argument(
+        "--callid-field", help="Field name to use as callid for duplicate prevention"
+    )
     args = ap.parse_args()
 
     # Load environment configuration
@@ -42,7 +52,9 @@ def main():
     try:
         from robocorp_adapters_custom.docdb_adapter import DocumentDBAdapter
     except ImportError as e:
-        print(f"Error: Could not import DocumentDBAdapter. Make sure pymongo is installed: {e}")
+        print(
+            f"Error: Could not import DocumentDBAdapter. Make sure pymongo is installed: {e}"
+        )
         print("Install with: pip install pymongo")
         sys.exit(1)
 
@@ -53,7 +65,7 @@ def main():
     queue = os.getenv("RC_WORKITEM_QUEUE_NAME", "default")
     docdb_database = os.getenv("DOCDB_DATABASE")
     docdb_hostname = os.getenv("DOCDB_HOSTNAME", os.getenv("DOCDB_URI", "localhost"))
-    
+
     if not docdb_database:
         print("Error: DOCDB_DATABASE environment variable is required")
         sys.exit(1)
@@ -131,9 +143,7 @@ def main():
 
             # Create work item
             item_id = adapter.seed_input(
-                payload=payload, 
-                files=file_tuples,
-                callid=callid
+                payload=payload, files=file_tuples, callid=callid
             )
             created += 1
 
@@ -168,7 +178,7 @@ def main():
         print(f"  rcc run -e {args.env} -t Producer")
         print(f"  rcc run -e devdata/env-docdb-local-consumer.json -t Consumer")
         print(f"  rcc run -e devdata/env-docdb-local-reporter.json -t Reporter")
-    
+
     # Close adapter connection
     adapter.close()
 

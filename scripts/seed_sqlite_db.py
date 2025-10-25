@@ -43,14 +43,18 @@ def seed_producer_workitem():
     # Note: create_output() creates items in {queue}_output queue, but Producer needs input queue
     payload = work_items[0]["payload"]
     import uuid as uuid_module
+
     item_id = str(uuid_module.uuid4())
 
     # Insert directly into input queue (not output queue)
     conn = adapter._get_connection()
-    conn.execute("""
+    conn.execute(
+        """
         INSERT INTO work_items (id, queue_name, parent_id, payload, state, created_at)
         VALUES (?, ?, ?, ?, 'PENDING', CURRENT_TIMESTAMP)
-    """, (item_id, adapter.queue_name, None, json.dumps(payload)))
+    """,
+        (item_id, adapter.queue_name, None, json.dumps(payload)),
+    )
     conn.commit()
 
     print(f"✓ Created producer work item: {item_id}")

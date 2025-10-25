@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from robocorp_adapters_custom.sqlite_adapter import SQLiteAdapter
 
+
 def main():
     # Load adapter configuration from environment
     db_path = os.getenv("RC_WORKITEM_DB_PATH", "devdata/work_items.db")
@@ -37,6 +38,7 @@ def main():
         print("\n✅ No orphaned work items found.")
 
     print(f"\n{'='*80}\n")
+
 
 if __name__ == "__main__":
     main()

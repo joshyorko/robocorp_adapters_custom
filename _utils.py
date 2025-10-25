@@ -15,7 +15,7 @@ from typing import Callable, Any, TypeVar
 
 LOGGER = logging.getLogger(__name__)
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 # T009: Connection pooling utility functions
@@ -45,21 +45,25 @@ class ThreadLocalConnectionPool:
         Returns:
             Connection instance (thread-local)
         """
-        if not hasattr(self._local, 'connection'):
+        if not hasattr(self._local, "connection"):
             self._local.connection = self._connection_factory()
-            LOGGER.debug("Created new connection for thread %s", threading.current_thread().name)
+            LOGGER.debug(
+                "Created new connection for thread %s", threading.current_thread().name
+            )
         return self._local.connection
 
     def close_all(self):
         """Close connection for current thread (if exists)."""
-        if hasattr(self._local, 'connection'):
+        if hasattr(self._local, "connection"):
             try:
                 self._local.connection.close()
-                LOGGER.debug("Closed connection for thread %s", threading.current_thread().name)
+                LOGGER.debug(
+                    "Closed connection for thread %s", threading.current_thread().name
+                )
             except Exception as e:
                 LOGGER.warning("Error closing connection: %s", e)
             finally:
-                delattr(self._local, 'connection')
+                delattr(self._local, "connection")
 
 
 # T010: Exponential backoff retry decorator
@@ -68,7 +72,7 @@ def with_retry(
     base_delay: float = 0.1,
     max_delay: float = 10.0,
     exponential_base: int = 2,
-    exceptions: tuple = (Exception,)
+    exceptions: tuple = (Exception,),
 ) -> Callable:
     """Decorator for retrying functions with exponential backoff.
 
@@ -88,6 +92,7 @@ def with_retry(
             # May fail temporarily
             pass
     """
+
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> T:
@@ -99,21 +104,24 @@ def with_retry(
                         # Final attempt failed, re-raise
                         LOGGER.error(
                             "Function %s failed after %d attempts: %s",
-                            func.__name__, max_retries, e
+                            func.__name__,
+                            max_retries,
+                            e,
                         )
                         raise
 
                     # Calculate delay with exponential backoff + jitter
-                    delay = min(
-                        base_delay * (exponential_base ** attempt),
-                        max_delay
-                    )
+                    delay = min(base_delay * (exponential_base**attempt), max_delay)
                     jitter = random.uniform(0, 0.1 * delay)
                     total_delay = delay + jitter
 
                     LOGGER.warning(
                         "Function %s attempt %d/%d failed: %s. Retrying in %.2fs",
-                        func.__name__, attempt + 1, max_retries, e, total_delay
+                        func.__name__,
+                        attempt + 1,
+                        max_retries,
+                        e,
+                        total_delay,
                     )
                     time.sleep(total_delay)
 
@@ -121,6 +129,7 @@ def with_retry(
             raise RuntimeError(f"{func.__name__} exhausted all retries")
 
         return wrapper
+
     return decorator
 
 
@@ -150,7 +159,7 @@ def apply_migration(
     conn: Any,
     target_version: int,
     migration_func: Callable[[Any], None],
-    version_table: str = "schema_version"
+    version_table: str = "schema_version",
 ):
     """Apply a schema migration within a transaction.
 
@@ -172,7 +181,7 @@ def apply_migration(
         # Record version
         conn.execute(
             f"INSERT INTO {version_table} (version, applied_at) VALUES (?, CURRENT_TIMESTAMP)",
-            (target_version,)
+            (target_version,),
         )
 
         conn.commit()
@@ -188,7 +197,7 @@ def run_migrations(
     current_version: int,
     target_version: int,
     migration_functions: dict[int, Callable[[Any], None]],
-    version_table: str = "schema_version"
+    version_table: str = "schema_version",
 ):
     """Run all pending migrations from current to target version.
 
@@ -212,8 +221,7 @@ def run_migrations(
         return
 
     LOGGER.info(
-        "Running migrations from version %d to %d",
-        current_version, target_version
+        "Running migrations from version %d to %d", current_version, target_version
     )
 
     for version in range(current_version + 1, target_version + 1):

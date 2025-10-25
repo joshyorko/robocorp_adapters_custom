@@ -104,9 +104,13 @@ class SQLiteAdapter(BaseAdapter):
                 "Example: devdata/work_items.db"
             )
 
-        self.files_dir = Path(os.getenv("RC_WORKITEM_FILES_DIR", "devdata/work_item_files"))
+        self.files_dir = Path(
+            os.getenv("RC_WORKITEM_FILES_DIR", "devdata/work_item_files")
+        )
         self.queue_name = os.getenv("RC_WORKITEM_QUEUE_NAME", "default")
-        self.orphan_timeout_minutes = int(os.getenv("RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES", "30"))
+        self.orphan_timeout_minutes = int(
+            os.getenv("RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES", "30")
+        )
 
         # Create directories
         self.files_dir.mkdir(parents=True, exist_ok=True)
@@ -120,7 +124,9 @@ class SQLiteAdapter(BaseAdapter):
 
         LOGGER.info(
             "SQLiteAdapter initialized: db=%s, queue=%s, files_dir=%s",
-            self.db_path, self.queue_name, self.files_dir
+            self.db_path,
+            self.queue_name,
+            self.files_dir,
         )
 
     def _create_connection(self) -> sqlite3.Connection:
@@ -158,12 +164,14 @@ class SQLiteAdapter(BaseAdapter):
         conn = self._get_connection()
 
         # Create version table
-        conn.execute("""
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS schema_version (
                 version INTEGER PRIMARY KEY,
                 applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        """)
+        """
+        )
         conn.commit()
 
         # Detect current version
@@ -202,7 +210,8 @@ class SQLiteAdapter(BaseAdapter):
         - state: Processing state (PENDING/RESERVED/COMPLETED/FAILED)
         - created_at: Creation timestamp
         """
-        conn.execute(f"""
+        conn.execute(
+            f"""
             CREATE TABLE work_items (
                 id TEXT PRIMARY KEY,
                 queue_name TEXT NOT NULL,
@@ -212,17 +221,23 @@ class SQLiteAdapter(BaseAdapter):
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (parent_id) REFERENCES work_items(id)
             )
-        """)
+        """
+        )
 
-        conn.execute("""
+        conn.execute(
+            """
             CREATE INDEX idx_queue_state ON work_items(queue_name, state, created_at)
-        """)
+        """
+        )
 
-        conn.execute("""
+        conn.execute(
+            """
             CREATE INDEX idx_parent ON work_items(parent_id)
-        """)
+        """
+        )
 
-        conn.execute("""
+        conn.execute(
+            """
             CREATE TABLE work_item_files (
                 work_item_id TEXT NOT NULL,
                 filename TEXT NOT NULL,
@@ -231,7 +246,8 @@ class SQLiteAdapter(BaseAdapter):
                 PRIMARY KEY (work_item_id, filename),
                 FOREIGN KEY (work_item_id) REFERENCES work_items(id) ON DELETE CASCADE
             )
-        """)
+        """
+        )
 
         LOGGER.info("Created initial schema (v1)")
 
@@ -264,11 +280,13 @@ class SQLiteAdapter(BaseAdapter):
         conn.execute("ALTER TABLE work_items ADD COLUMN released_at TIMESTAMP")
 
         # T029: Add partial index for orphan recovery queries
-        conn.execute(f"""
+        conn.execute(
+            f"""
             CREATE INDEX idx_orphan_check
             ON work_items(state, reserved_at)
             WHERE state='{ProcessingState.RESERVED.value}'
-        """)
+        """
+        )
 
         LOGGER.info("Added timestamp fields and orphan index (v3)")
 
@@ -282,7 +300,8 @@ class SQLiteAdapter(BaseAdapter):
         Since SQLite doesn't support ALTER CONSTRAINT, we recreate the table.
         """
         # Create new table with updated constraint
-        conn.execute(f"""
+        conn.execute(
+            f"""
             CREATE TABLE work_items_new (
                 id TEXT PRIMARY KEY,
                 queue_name TEXT NOT NULL,
@@ -297,17 +316,20 @@ class SQLiteAdapter(BaseAdapter):
                 released_at TIMESTAMP,
                 FOREIGN KEY (parent_id) REFERENCES work_items_new(id)
             )
-        """)
+        """
+        )
 
         # Copy data, mapping DONE -> COMPLETED
-        conn.execute("""
+        conn.execute(
+            """
             INSERT INTO work_items_new
             SELECT id, queue_name, parent_id, payload,
                    CASE WHEN state = 'DONE' THEN 'COMPLETED' ELSE state END,
                    created_at, exception_type, exception_code, exception_message,
                    reserved_at, released_at
             FROM work_items
-        """)
+        """
+        )
 
         # Drop old indexes first (they reference the old table)
         conn.execute("DROP INDEX IF EXISTS idx_queue_state")
@@ -321,22 +343,31 @@ class SQLiteAdapter(BaseAdapter):
         conn.execute("ALTER TABLE work_items_new RENAME TO work_items")
 
         # Create indexes on new table
-        conn.execute("""
+        conn.execute(
+            """
             CREATE INDEX idx_queue_state ON work_items(queue_name, state, created_at)
-        """)
-        conn.execute("""
+        """
+        )
+        conn.execute(
+            """
             CREATE INDEX idx_parent ON work_items(parent_id)
-        """)
-        conn.execute(f"""
+        """
+        )
+        conn.execute(
+            f"""
             CREATE INDEX idx_orphan_check
             ON work_items(state, reserved_at)
             WHERE state='{ProcessingState.RESERVED.value}'
-        """)
+        """
+        )
 
         LOGGER.info("Updated state constraint from DONE to COMPLETED (v4)")
 
     # T020: Reserve input work item
-    @with_retry(max_retries=3, exceptions=(sqlite3.OperationalError, DatabaseTemporarilyUnavailable))
+    @with_retry(
+        max_retries=3,
+        exceptions=(sqlite3.OperationalError, DatabaseTemporarilyUnavailable),
+    )
     def reserve_input(self) -> str:
         """Reserve next pending work item from queue.
 
@@ -358,7 +389,8 @@ class SQLiteAdapter(BaseAdapter):
                 self.queue_name,
             )
             # Atomic reservation with RETURNING clause
-            cursor = conn.execute("""
+            cursor = conn.execute(
+                """
                 UPDATE work_items
                 SET state = ?,
                     reserved_at = CURRENT_TIMESTAMP
@@ -369,11 +401,13 @@ class SQLiteAdapter(BaseAdapter):
                     LIMIT 1
                 )
                 RETURNING id
-            """, (
-                ProcessingState.RESERVED.value,
-                self.queue_name,
-                ProcessingState.PENDING.value,
-            ))
+            """,
+                (
+                    ProcessingState.RESERVED.value,
+                    self.queue_name,
+                    ProcessingState.PENDING.value,
+                ),
+            )
 
             result = cursor.fetchone()
             conn.commit()
@@ -432,7 +466,8 @@ class SQLiteAdapter(BaseAdapter):
 
         conn = self._get_connection()
 
-        conn.execute("""
+        conn.execute(
+            """
             UPDATE work_items
             SET state = ?,
                 released_at = CURRENT_TIMESTAMP,
@@ -440,7 +475,9 @@ class SQLiteAdapter(BaseAdapter):
                 exception_code = ?,
                 exception_message = ?
             WHERE id = ?
-        """, (state.value, exception_type, exception_code, exception_message, item_id))
+        """,
+            (state.value, exception_type, exception_code, exception_message, item_id),
+        )
 
         conn.commit()
 
@@ -491,10 +528,19 @@ class SQLiteAdapter(BaseAdapter):
 
         conn = self._get_connection()
 
-        conn.execute("""
+        conn.execute(
+            """
             INSERT INTO work_items (id, queue_name, parent_id, payload, state, created_at)
             VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        """, (item_id, output_queue, parent_id, payload_json, ProcessingState.PENDING.value))
+        """,
+            (
+                item_id,
+                output_queue,
+                parent_id,
+                payload_json,
+                ProcessingState.PENDING.value,
+            ),
+        )
 
         conn.commit()
 
@@ -549,8 +595,7 @@ class SQLiteAdapter(BaseAdapter):
 
         LOGGER.info("Saving work item payload to SQLite for: %s", item_id)
         cursor = conn.execute(
-            "UPDATE work_items SET payload = ? WHERE id = ?",
-            (payload_json, item_id)
+            "UPDATE work_items SET payload = ? WHERE id = ?", (payload_json, item_id)
         )
 
         if cursor.rowcount == 0:
@@ -574,7 +619,7 @@ class SQLiteAdapter(BaseAdapter):
         LOGGER.info("Listing files for SQLite work item: %s", item_id)
         cursor = conn.execute(
             "SELECT filename FROM work_item_files WHERE work_item_id = ? ORDER BY filename",
-            (item_id,)
+            (item_id,),
         )
 
         files = [row[0] for row in cursor.fetchall()]
@@ -600,7 +645,7 @@ class SQLiteAdapter(BaseAdapter):
         LOGGER.info("Loading file '%s' from SQLite work item: %s", name, item_id)
         cursor = conn.execute(
             "SELECT filepath FROM work_item_files WHERE work_item_id = ? AND filename = ?",
-            (item_id, name)
+            (item_id, name),
         )
         result = cursor.fetchone()
 
@@ -613,7 +658,12 @@ class SQLiteAdapter(BaseAdapter):
             raise ValueError(f"File missing from filesystem: {filepath}")
 
         content = filepath.read_bytes()
-        LOGGER.debug("Retrieved file: %s (work item: %s, size: %d bytes)", name, item_id, len(content))
+        LOGGER.debug(
+            "Retrieved file: %s (work item: %s, size: %d bytes)",
+            name,
+            item_id,
+            len(content),
+        )
         return content
 
     # T027: Add file
@@ -653,10 +703,13 @@ class SQLiteAdapter(BaseAdapter):
         conn = self._get_connection()
 
         try:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO work_item_files (work_item_id, filename, filepath)
                 VALUES (?, ?, ?)
-            """, (item_id, name, str(filepath)))
+            """,
+                (item_id, name, str(filepath)),
+            )
 
             conn.commit()
         except sqlite3.IntegrityError:
@@ -684,7 +737,7 @@ class SQLiteAdapter(BaseAdapter):
         # Get filepath from database
         cursor = conn.execute(
             "SELECT filepath FROM work_item_files WHERE work_item_id = ? AND filename = ?",
-            (item_id, name)
+            (item_id, name),
         )
         result = cursor.fetchone()
 
@@ -696,7 +749,7 @@ class SQLiteAdapter(BaseAdapter):
         # Delete from database
         conn.execute(
             "DELETE FROM work_item_files WHERE work_item_id = ? AND filename = ?",
-            (item_id, name)
+            (item_id, name),
         )
         conn.commit()
 
@@ -738,9 +791,14 @@ class SQLiteAdapter(BaseAdapter):
         if recovered_ids:
             LOGGER.warning(
                 "Recovered %d orphaned work items (timeout: %d min): %s",
-                len(recovered_ids), self.orphan_timeout_minutes, recovered_ids
+                len(recovered_ids),
+                self.orphan_timeout_minutes,
+                recovered_ids,
             )
         else:
-            LOGGER.debug("No orphaned work items found (timeout: %d min)", self.orphan_timeout_minutes)
+            LOGGER.debug(
+                "No orphaned work items found (timeout: %d min)",
+                self.orphan_timeout_minutes,
+            )
 
         return recovered_ids

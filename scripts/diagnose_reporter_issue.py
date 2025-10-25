@@ -20,12 +20,14 @@ print(f"Reporter Issue Diagnosis")
 print(f"{'='*80}\n")
 
 # Get all work items in the Consumer's output queue
-cursor = conn.execute("""
+cursor = conn.execute(
+    """
     SELECT id, queue_name, state, payload
     FROM work_items
     WHERE queue_name LIKE '%output%'
     ORDER BY created_at DESC
-""")
+"""
+)
 
 print("Work Items in Output Queues:")
 print("-" * 80)
@@ -35,7 +37,7 @@ consumer_format_count = 0
 reporter_items = 0
 
 for row in cursor:
-    payload = json.loads(row['payload'])
+    payload = json.loads(row["payload"])
     print(f"\nID: {row['id']}")
     print(f"  Queue: {row['queue_name']}")
     print(f"  State: {row['state']}")

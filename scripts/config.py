@@ -4,6 +4,7 @@ This module exposes only the adapter configuration helpers used by the
 robot tasks. Project-specific parameter loading was removed to keep the
 module focused and portable.
 """
+
 from __future__ import annotations
 
 import os
@@ -24,22 +25,20 @@ def get_adapter_config() -> Dict[str, object]:
     config: Dict[str, object] = {
         # Adapter selection (required)
         "adapter_class": os.getenv("RC_WORKITEM_ADAPTER", ""),
-
         # Common configuration
         "queue_name": os.getenv("RC_WORKITEM_QUEUE_NAME", "default"),
         "files_dir": os.getenv("RC_WORKITEM_FILES_DIR", "devdata/work_item_files"),
-        "orphan_timeout_minutes": int(os.getenv("RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES", "30")),
-
+        "orphan_timeout_minutes": int(
+            os.getenv("RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES", "30")
+        ),
         # SQLite configuration
         "db_path": os.getenv("RC_WORKITEM_DB_PATH", ""),
-
         # Redis configuration
         "redis_host": os.getenv("REDIS_HOST", "localhost"),
         "redis_port": int(os.getenv("REDIS_PORT", "6379")),
         "redis_db": int(os.getenv("REDIS_DB", "0")),
         "redis_password": os.getenv("REDIS_PASSWORD"),
         "redis_max_connections": int(os.getenv("REDIS_MAX_CONNECTIONS", "50")),
-
         # PostgreSQL configuration
         "postgres_connection_string": os.getenv("POSTGRES_CONNECTION_STRING", ""),
         "postgres_pool_size": int(os.getenv("POSTGRES_POOL_SIZE", "10")),

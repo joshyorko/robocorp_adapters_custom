@@ -23,9 +23,15 @@ from robocorp.workitems._types import State
 from robocorp.workitems._exceptions import EmptyQueue
 
 # Export our custom exception types
-from .exceptions import AdapterError, DatabaseTemporarilyUnavailable, ConnectionPoolExhausted, SchemaVersionMismatch
+from .exceptions import (
+    AdapterError,
+    DatabaseTemporarilyUnavailable,
+    ConnectionPoolExhausted,
+    SchemaVersionMismatch,
+)
 
 from .sqlite_adapter import SQLiteAdapter
+
 try:
     # RedisAdapter is optional for local/dev SQLite runs. Import lazily and
     # allow the package to be imported even when `redis` is not installed.

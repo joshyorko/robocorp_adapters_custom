@@ -28,6 +28,7 @@ import os
 from typing import Optional
 
 from robocorp.workitems._adapters._base import BaseAdapter
+
 # Import scripts.config lazily inside initialize_adapter to avoid import-time
 # dependency on the scripts package for lightweight dev tasks (like seeding
 # the SQLite DB) that don't need adapter configuration.

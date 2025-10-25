@@ -14,7 +14,7 @@ Features:
 
 Performance:
 - Reserve: <20ms (p95) with proper indexing
-- Create: <10ms (p95)  
+- Create: <10ms (p95)
 - Load payload: <15ms (p95)
 
 Use Cases:
@@ -135,12 +135,12 @@ class DocumentDBAdapter(BaseAdapter):
             },
             "exception": {
                 "type": "ExceptionClass",
-                "code": "ERROR_CODE", 
+                "code": "ERROR_CODE",
                 "message": "Error description"
             },
             "timestamps": {
                 "created_at": ISODate("..."),
-                "reserved_at": ISODate("..."), 
+                "reserved_at": ISODate("..."),
                 "released_at": ISODate("...")
             },
             "callid": "unique-call-identifier",  # Duplicate prevention
@@ -173,15 +173,23 @@ class DocumentDBAdapter(BaseAdapter):
         # Optional configuration
         self.queue_name = os.getenv("RC_WORKITEM_QUEUE_NAME", "default")
         self.output_queue_name = f"{self.queue_name}_output"
-        self.files_dir = Path(os.getenv("RC_WORKITEM_FILES_DIR", "devdata/work_item_files"))
-        self.orphan_timeout_minutes = int(os.getenv("RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES", "30"))
-        self.file_threshold = int(os.getenv("RC_WORKITEM_FILE_SIZE_THRESHOLD", str(GRIDFS_THRESHOLD)))
+        self.files_dir = Path(
+            os.getenv("RC_WORKITEM_FILES_DIR", "devdata/work_item_files")
+        )
+        self.orphan_timeout_minutes = int(
+            os.getenv("RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES", "30")
+        )
+        self.file_threshold = int(
+            os.getenv("RC_WORKITEM_FILE_SIZE_THRESHOLD", str(GRIDFS_THRESHOLD))
+        )
 
         # Create files directory for hybrid storage
         self.files_dir.mkdir(parents=True, exist_ok=True)
 
         # Validate configuration
-        if not self.docdb_uri and not (self.docdb_hostname and self.docdb_username and self.docdb_password):
+        if not self.docdb_uri and not (
+            self.docdb_hostname and self.docdb_username and self.docdb_password
+        ):
             raise ValueError(
                 "Either DOCDB_URI or (DOCDB_HOSTNAME + DOCDB_USERNAME + DOCDB_PASSWORD) required"
             )
@@ -196,7 +204,9 @@ class DocumentDBAdapter(BaseAdapter):
 
             LOGGER.info(
                 "DocumentDBAdapter initialized: db=%s, queue=%s, replica_set=%s",
-                self.docdb_database, self.queue_name, self.docdb_replica_set or "none"
+                self.docdb_database,
+                self.queue_name,
+                self.docdb_replica_set or "none",
             )
         except Exception as e:
             LOGGER.critical("Failed to initialize DocumentDB adapter: %s", e)
@@ -213,8 +223,16 @@ class DocumentDBAdapter(BaseAdapter):
             connection_uri = self.docdb_uri
         else:
             # Construct URI from components
-            auth_part = f"{self.docdb_username}:{self.docdb_password}@" if self.docdb_username else ""
-            replica_part = f"?replicaSet={self.docdb_replica_set}" if self.docdb_replica_set else ""
+            auth_part = (
+                f"{self.docdb_username}:{self.docdb_password}@"
+                if self.docdb_username
+                else ""
+            )
+            replica_part = (
+                f"?replicaSet={self.docdb_replica_set}"
+                if self.docdb_replica_set
+                else ""
+            )
             connection_uri = f"mongodb://{auth_part}{self.docdb_hostname}:{self.docdb_port}/{replica_part}"
 
         # DocumentDB connection options
@@ -231,12 +249,16 @@ class DocumentDBAdapter(BaseAdapter):
 
         # Add TLS configuration for AWS DocumentDB
         if self.docdb_tls_cert:
-            connection_options.update({
-                "tls": True,
-                "tlsCAFile": self.docdb_tls_cert,
-                "tlsAllowInvalidHostnames": False,
-            })
-        elif "ssl=true" in connection_uri.lower() or "tls=true" in connection_uri.lower():
+            connection_options.update(
+                {
+                    "tls": True,
+                    "tlsCAFile": self.docdb_tls_cert,
+                    "tlsAllowInvalidHostnames": False,
+                }
+            )
+        elif (
+            "ssl=true" in connection_uri.lower() or "tls=true" in connection_uri.lower()
+        ):
             # URI specifies TLS but no cert provided - use system default
             connection_options["tls"] = True
 
@@ -250,7 +272,10 @@ class DocumentDBAdapter(BaseAdapter):
             self.db = self.client[self.docdb_database]
             self.gridfs = GridFS(self.db, collection=f"{self.queue_name}_files")
 
-            LOGGER.info("Connected to DocumentDB cluster: %s", self.docdb_hostname or "URI-based")
+            LOGGER.info(
+                "Connected to DocumentDB cluster: %s",
+                self.docdb_hostname or "URI-based",
+            )
         except (ConnectionFailure, ServerSelectionTimeoutError) as e:
             LOGGER.critical("Failed to connect to DocumentDB: %s", e)
             raise AdapterError(f"DocumentDB connection failed: {e}") from e
@@ -268,38 +293,42 @@ class DocumentDBAdapter(BaseAdapter):
                 collection = self.db[collection_name]
 
                 # Create indexes for efficient querying
-                collection.create_index([
-                    ("queue_name", ASCENDING),
-                    ("state", ASCENDING),
-                    ("timestamps.created_at", ASCENDING)
-                ], name="queue_state_created_idx")
+                collection.create_index(
+                    [
+                        ("queue_name", ASCENDING),
+                        ("state", ASCENDING),
+                        ("timestamps.created_at", ASCENDING),
+                    ],
+                    name="queue_state_created_idx",
+                )
 
-                collection.create_index([
-                    ("item_id", ASCENDING)
-                ], unique=True, name="item_id_unique_idx")
+                collection.create_index(
+                    [("item_id", ASCENDING)], unique=True, name="item_id_unique_idx"
+                )
 
-                collection.create_index([
-                    ("callid", ASCENDING)
-                ], sparse=True, name="callid_idx")  # Sparse for optional callid
+                collection.create_index(
+                    [("callid", ASCENDING)], sparse=True, name="callid_idx"
+                )  # Sparse for optional callid
 
-                collection.create_index([
-                    ("state", ASCENDING),
-                    ("timestamps.reserved_at", ASCENDING)
-                ], sparse=True, name="orphan_recovery_idx")
+                collection.create_index(
+                    [("state", ASCENDING), ("timestamps.reserved_at", ASCENDING)],
+                    sparse=True,
+                    name="orphan_recovery_idx",
+                )
 
                 # TTL index for automatic cleanup (7 days)
-                collection.create_index([
-                    ("expires_at", ASCENDING)
-                ], expireAfterSeconds=0, name="ttl_idx")
+                collection.create_index(
+                    [("expires_at", ASCENDING)], expireAfterSeconds=0, name="ttl_idx"
+                )
 
                 LOGGER.info("Initialized collection %s with indexes", collection_name)
 
             # Initialize GridFS indexes
             gridfs_files_collection = self.db[f"{self.queue_name}_files.files"]
-            gridfs_files_collection.create_index([
-                ("filename", ASCENDING),
-                ("uploadDate", DESCENDING)
-            ], name="filename_upload_idx")
+            gridfs_files_collection.create_index(
+                [("filename", ASCENDING), ("uploadDate", DESCENDING)],
+                name="filename_upload_idx",
+            )
 
             LOGGER.info("DocumentDB collections and indexes initialized")
 
@@ -307,7 +336,7 @@ class DocumentDBAdapter(BaseAdapter):
             LOGGER.error("Failed to initialize DocumentDB collections: %s", e)
             raise AdapterError(f"Collection initialization failed: {e}") from e
 
-    def _get_collection(self, queue_name: Optional[str] = None) -> 'Collection':
+    def _get_collection(self, queue_name: Optional[str] = None) -> "Collection":
         """Get work items collection for specified queue.
 
         Args:
@@ -336,12 +365,22 @@ class DocumentDBAdapter(BaseAdapter):
             return self.queue_name
 
         # Check output queue
-        if self._get_collection(self.output_queue_name).count_documents({"item_id": item_id}, limit=1):
+        if self._get_collection(self.output_queue_name).count_documents(
+            {"item_id": item_id}, limit=1
+        ):
             return self.output_queue_name
 
         raise ValueError(f"Work item not found: {item_id}")
 
-    @with_retry(max_retries=3, base_delay=0.1, exceptions=(ConnectionFailure, ServerSelectionTimeoutError, DatabaseTemporarilyUnavailable))
+    @with_retry(
+        max_retries=3,
+        base_delay=0.1,
+        exceptions=(
+            ConnectionFailure,
+            ServerSelectionTimeoutError,
+            DatabaseTemporarilyUnavailable,
+        ),
+    )
     def reserve_input(self) -> str:
         """Reserve next pending work item from queue.
 
@@ -372,18 +411,15 @@ class DocumentDBAdapter(BaseAdapter):
 
             # Atomic find and update to reserve work item
             result = collection.find_one_and_update(
-                {
-                    "queue_name": self.queue_name,
-                    "state": ProcessingState.PENDING.value
-                },
+                {"queue_name": self.queue_name, "state": ProcessingState.PENDING.value},
                 {
                     "$set": {
                         "state": ProcessingState.RESERVED.value,
-                        "timestamps.reserved_at": now
+                        "timestamps.reserved_at": now,
                     }
                 },
                 sort=[("timestamps.created_at", ASCENDING)],
-                return_document=pymongo.ReturnDocument.AFTER
+                return_document=pymongo.ReturnDocument.AFTER,
             )
 
             if not result:
@@ -399,10 +435,22 @@ class DocumentDBAdapter(BaseAdapter):
 
         except (ConnectionFailure, ServerSelectionTimeoutError) as e:
             LOGGER.error("DocumentDB connection error during reserve: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"DocumentDB connection failed: {e}") from e
+            raise DatabaseTemporarilyUnavailable(
+                f"DocumentDB connection failed: {e}"
+            ) from e
 
-    @with_retry(max_retries=3, base_delay=0.1, exceptions=(ConnectionFailure, ServerSelectionTimeoutError, DatabaseTemporarilyUnavailable))
-    def release_input(self, item_id: str, state: State, exception: Optional[dict] = None) -> None:
+    @with_retry(
+        max_retries=3,
+        base_delay=0.1,
+        exceptions=(
+            ConnectionFailure,
+            ServerSelectionTimeoutError,
+            DatabaseTemporarilyUnavailable,
+        ),
+    )
+    def release_input(
+        self, item_id: str, state: State, exception: Optional[dict] = None
+    ) -> None:
         """Release work item with terminal state (DONE or FAILED).
 
         Updates work item state and records exception details if failed.
@@ -433,8 +481,12 @@ class DocumentDBAdapter(BaseAdapter):
             # Prepare update document
             update_doc = {
                 "$set": {
-                    "state": ProcessingState.COMPLETED.value if state == State.DONE else ProcessingState.FAILED.value,
-                    "timestamps.released_at": now
+                    "state": (
+                        ProcessingState.COMPLETED.value
+                        if state == State.DONE
+                        else ProcessingState.FAILED.value
+                    ),
+                    "timestamps.released_at": now,
                 }
             }
 
@@ -443,14 +495,11 @@ class DocumentDBAdapter(BaseAdapter):
                 update_doc["$set"]["exception"] = {
                     "type": exception.get("type", "UnknownException"),
                     "code": exception.get("code", ""),
-                    "message": exception.get("message", "")
+                    "message": exception.get("message", ""),
                 }
 
             # Update work item
-            result = collection.update_one(
-                {"item_id": item_id},
-                update_doc
-            )
+            result = collection.update_one({"item_id": item_id}, update_doc)
 
             if result.matched_count == 0:
                 LOGGER.warning("Work item not found for release: %s", item_id)
@@ -466,9 +515,19 @@ class DocumentDBAdapter(BaseAdapter):
 
         except (ConnectionFailure, ServerSelectionTimeoutError) as e:
             LOGGER.error("DocumentDB connection error during release: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"DocumentDB connection failed: {e}") from e
+            raise DatabaseTemporarilyUnavailable(
+                f"DocumentDB connection failed: {e}"
+            ) from e
 
-    @with_retry(max_retries=3, base_delay=0.1, exceptions=(ConnectionFailure, ServerSelectionTimeoutError, DatabaseTemporarilyUnavailable))
+    @with_retry(
+        max_retries=3,
+        base_delay=0.1,
+        exceptions=(
+            ConnectionFailure,
+            ServerSelectionTimeoutError,
+            DatabaseTemporarilyUnavailable,
+        ),
+    )
     def create_output(self, parent_id: str, payload: Optional[JSONType] = None) -> str:
         """Create new work item as output of current work item.
 
@@ -510,10 +569,8 @@ class DocumentDBAdapter(BaseAdapter):
                 "state": ProcessingState.PENDING.value,
                 "payload": payload_data,
                 "files": {},
-                "timestamps": {
-                    "created_at": now
-                },
-                "expires_at": expires_at
+                "timestamps": {"created_at": now},
+                "expires_at": expires_at,
             }
 
             # Insert document
@@ -528,9 +585,17 @@ class DocumentDBAdapter(BaseAdapter):
 
         except (ConnectionFailure, ServerSelectionTimeoutError) as e:
             LOGGER.error("DocumentDB connection error during create: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"DocumentDB connection failed: {e}") from e
+            raise DatabaseTemporarilyUnavailable(
+                f"DocumentDB connection failed: {e}"
+            ) from e
 
-    def seed_input(self, payload: Optional[JSONType] = None, parent_id: str = "", files: Optional[list[tuple[str, bytes]]] = None, callid: Optional[str] = None) -> str:
+    def seed_input(
+        self,
+        payload: Optional[JSONType] = None,
+        parent_id: str = "",
+        files: Optional[list[tuple[str, bytes]]] = None,
+        callid: Optional[str] = None,
+    ) -> str:
         """Developer helper to create work item directly in input queue.
 
         This method is used by seeding scripts to populate the queue with test data.
@@ -561,10 +626,8 @@ class DocumentDBAdapter(BaseAdapter):
                 "state": ProcessingState.PENDING.value,
                 "payload": payload_data,
                 "files": {},
-                "timestamps": {
-                    "created_at": now
-                },
-                "expires_at": expires_at
+                "timestamps": {"created_at": now},
+                "expires_at": expires_at,
             }
 
             # Add callid if provided (for duplicate prevention)
@@ -583,20 +646,32 @@ class DocumentDBAdapter(BaseAdapter):
                 "Created DocumentDB input work item %s in queue %s%s",
                 item_id,
                 self.queue_name,
-                f" with callid {callid}" if callid else ""
+                f" with callid {callid}" if callid else "",
             )
             return item_id
 
         except DuplicateKeyError as e:
             if "callid" in str(e):
                 LOGGER.warning("Duplicate callid detected: %s", callid)
-                raise AdapterError(f"Work item with callid {callid} already exists") from e
+                raise AdapterError(
+                    f"Work item with callid {callid} already exists"
+                ) from e
             raise
         except (ConnectionFailure, ServerSelectionTimeoutError) as e:
             LOGGER.error("DocumentDB connection error during seed_input: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"DocumentDB connection failed: {e}") from e
+            raise DatabaseTemporarilyUnavailable(
+                f"DocumentDB connection failed: {e}"
+            ) from e
 
-    @with_retry(max_retries=3, base_delay=0.1, exceptions=(ConnectionFailure, ServerSelectionTimeoutError, DatabaseTemporarilyUnavailable))
+    @with_retry(
+        max_retries=3,
+        base_delay=0.1,
+        exceptions=(
+            ConnectionFailure,
+            ServerSelectionTimeoutError,
+            DatabaseTemporarilyUnavailable,
+        ),
+    )
     def load_payload(self, item_id: str) -> JSONType:
         """Load JSON payload from work item.
 
@@ -627,9 +702,19 @@ class DocumentDBAdapter(BaseAdapter):
 
         except (ConnectionFailure, ServerSelectionTimeoutError) as e:
             LOGGER.error("DocumentDB connection error during load_payload: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"DocumentDB connection failed: {e}") from e
+            raise DatabaseTemporarilyUnavailable(
+                f"DocumentDB connection failed: {e}"
+            ) from e
 
-    @with_retry(max_retries=3, base_delay=0.1, exceptions=(ConnectionFailure, ServerSelectionTimeoutError, DatabaseTemporarilyUnavailable))
+    @with_retry(
+        max_retries=3,
+        base_delay=0.1,
+        exceptions=(
+            ConnectionFailure,
+            ServerSelectionTimeoutError,
+            DatabaseTemporarilyUnavailable,
+        ),
+    )
     def save_payload(self, item_id: str, payload: JSONType) -> None:
         """Save JSON payload to work item.
 
@@ -648,8 +733,7 @@ class DocumentDBAdapter(BaseAdapter):
             collection = self._get_collection(queue_name)
 
             result = collection.update_one(
-                {"item_id": item_id},
-                {"$set": {"payload": payload}}
+                {"item_id": item_id}, {"$set": {"payload": payload}}
             )
 
             if result.matched_count == 0:
@@ -659,9 +743,19 @@ class DocumentDBAdapter(BaseAdapter):
 
         except (ConnectionFailure, ServerSelectionTimeoutError) as e:
             LOGGER.error("DocumentDB connection error during save_payload: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"DocumentDB connection failed: {e}") from e
+            raise DatabaseTemporarilyUnavailable(
+                f"DocumentDB connection failed: {e}"
+            ) from e
 
-    @with_retry(max_retries=3, base_delay=0.1, exceptions=(ConnectionFailure, ServerSelectionTimeoutError, DatabaseTemporarilyUnavailable))
+    @with_retry(
+        max_retries=3,
+        base_delay=0.1,
+        exceptions=(
+            ConnectionFailure,
+            ServerSelectionTimeoutError,
+            DatabaseTemporarilyUnavailable,
+        ),
+    )
     def list_files(self, item_id: str) -> list[str]:
         """List attached files in work item.
 
@@ -693,9 +787,19 @@ class DocumentDBAdapter(BaseAdapter):
 
         except (ConnectionFailure, ServerSelectionTimeoutError) as e:
             LOGGER.error("DocumentDB connection error during list_files: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"DocumentDB connection failed: {e}") from e
+            raise DatabaseTemporarilyUnavailable(
+                f"DocumentDB connection failed: {e}"
+            ) from e
 
-    @with_retry(max_retries=3, base_delay=0.1, exceptions=(ConnectionFailure, ServerSelectionTimeoutError, DatabaseTemporarilyUnavailable))
+    @with_retry(
+        max_retries=3,
+        base_delay=0.1,
+        exceptions=(
+            ConnectionFailure,
+            ServerSelectionTimeoutError,
+            DatabaseTemporarilyUnavailable,
+        ),
+    )
     def get_file(self, item_id: str, name: str) -> bytes:
         """Read file contents from work item.
 
@@ -725,21 +829,30 @@ class DocumentDBAdapter(BaseAdapter):
             document = collection.find_one({"item_id": item_id}, {"files": 1})
 
             if not document or name not in document.get("files", {}):
-                raise FileNotFoundError(f"File not found: {name} (work item: {item_id})")
+                raise FileNotFoundError(
+                    f"File not found: {name} (work item: {item_id})"
+                )
 
             file_data = document["files"][name]
 
             if isinstance(file_data, str):
                 # Small file stored inline (base64)
                 import base64
+
                 content = base64.b64decode(file_data)
-                LOGGER.debug("Retrieved file '%s' from inline storage: %s bytes", name, len(content))
+                LOGGER.debug(
+                    "Retrieved file '%s' from inline storage: %s bytes",
+                    name,
+                    len(content),
+                )
             elif isinstance(file_data, dict) and "gridfs_id" in file_data:
                 # Large file stored in GridFS
                 gridfs_id = file_data["gridfs_id"]
                 grid_out = self.gridfs.get(gridfs_id)
                 content = grid_out.read()
-                LOGGER.debug("Retrieved file '%s' from GridFS: %s bytes", name, len(content))
+                LOGGER.debug(
+                    "Retrieved file '%s' from GridFS: %s bytes", name, len(content)
+                )
             else:
                 raise ValueError(f"Invalid file data format for {name}")
 
@@ -747,9 +860,19 @@ class DocumentDBAdapter(BaseAdapter):
 
         except (ConnectionFailure, ServerSelectionTimeoutError) as e:
             LOGGER.error("DocumentDB connection error during get_file: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"DocumentDB connection failed: {e}") from e
+            raise DatabaseTemporarilyUnavailable(
+                f"DocumentDB connection failed: {e}"
+            ) from e
 
-    @with_retry(max_retries=3, base_delay=0.1, exceptions=(ConnectionFailure, ServerSelectionTimeoutError, DatabaseTemporarilyUnavailable))
+    @with_retry(
+        max_retries=3,
+        base_delay=0.1,
+        exceptions=(
+            ConnectionFailure,
+            ServerSelectionTimeoutError,
+            DatabaseTemporarilyUnavailable,
+        ),
+    )
     def add_file(self, item_id: str, name: str, content: bytes) -> None:
         """Attach file to work item.
 
@@ -768,7 +891,7 @@ class DocumentDBAdapter(BaseAdapter):
             DatabaseTemporarilyUnavailable: DocumentDB connection error (retried)
         """
         # Validate filename
-        if '/' in name or '\\' in name:
+        if "/" in name or "\\" in name:
             raise ValueError(f"Invalid filename (no path separators allowed): {name}")
 
         if len(name) > 255:
@@ -776,7 +899,9 @@ class DocumentDBAdapter(BaseAdapter):
 
         # Validate file size
         if len(content) > MAX_FILE_SIZE:
-            raise ValueError(f"File too large (max {MAX_FILE_SIZE} bytes): {len(content)} bytes")
+            raise ValueError(
+                f"File too large (max {MAX_FILE_SIZE} bytes): {len(content)} bytes"
+            )
 
         LOGGER.info(
             "Adding file '%s' to DocumentDB work item %s (%d bytes)",
@@ -792,35 +917,51 @@ class DocumentDBAdapter(BaseAdapter):
             # Check if file already exists
             document = collection.find_one({"item_id": item_id}, {"files": 1})
             if document and name in document.get("files", {}):
-                raise FileExistsError(f"File already exists: {name} (use remove_file first)")
+                raise FileExistsError(
+                    f"File already exists: {name} (use remove_file first)"
+                )
 
             if len(content) > self.file_threshold:
                 # Large file: Store in GridFS
                 gridfs_id = self.gridfs.put(
                     content,
                     filename=f"{item_id}/{name}",
-                    metadata={"item_id": item_id, "original_name": name}
+                    metadata={"item_id": item_id, "original_name": name},
                 )
 
                 file_data = {"gridfs_id": gridfs_id}
-                LOGGER.info("Stored large DocumentDB file in GridFS: %s bytes", len(content))
+                LOGGER.info(
+                    "Stored large DocumentDB file in GridFS: %s bytes", len(content)
+                )
             else:
                 # Small file: Store inline (base64 encoded)
                 import base64
-                file_data = base64.b64encode(content).decode('utf-8')
-                LOGGER.info("Stored small DocumentDB file inline: %s bytes", len(content))
+
+                file_data = base64.b64encode(content).decode("utf-8")
+                LOGGER.info(
+                    "Stored small DocumentDB file inline: %s bytes", len(content)
+                )
 
             # Update work item document
             collection.update_one(
-                {"item_id": item_id},
-                {"$set": {f"files.{name}": file_data}}
+                {"item_id": item_id}, {"$set": {f"files.{name}": file_data}}
             )
 
         except (ConnectionFailure, ServerSelectionTimeoutError) as e:
             LOGGER.error("DocumentDB connection error during add_file: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"DocumentDB connection failed: {e}") from e
+            raise DatabaseTemporarilyUnavailable(
+                f"DocumentDB connection failed: {e}"
+            ) from e
 
-    @with_retry(max_retries=3, base_delay=0.1, exceptions=(ConnectionFailure, ServerSelectionTimeoutError, DatabaseTemporarilyUnavailable))
+    @with_retry(
+        max_retries=3,
+        base_delay=0.1,
+        exceptions=(
+            ConnectionFailure,
+            ServerSelectionTimeoutError,
+            DatabaseTemporarilyUnavailable,
+        ),
+    )
     def remove_file(self, item_id: str, name: str) -> None:
         """Remove file from work item.
 
@@ -849,7 +990,9 @@ class DocumentDBAdapter(BaseAdapter):
             document = collection.find_one({"item_id": item_id}, {"files": 1})
 
             if not document or name not in document.get("files", {}):
-                raise FileNotFoundError(f"File not found: {name} (work item: {item_id})")
+                raise FileNotFoundError(
+                    f"File not found: {name} (work item: {item_id})"
+                )
 
             file_data = document["files"][name]
 
@@ -861,17 +1004,20 @@ class DocumentDBAdapter(BaseAdapter):
 
             # Remove from work item document
             collection.update_one(
-                {"item_id": item_id},
-                {"$unset": {f"files.{name}": ""}}
+                {"item_id": item_id}, {"$unset": {f"files.{name}": ""}}
             )
 
             LOGGER.info("Removed file '%s' from work item: %s", name, item_id)
 
         except (ConnectionFailure, ServerSelectionTimeoutError) as e:
             LOGGER.error("DocumentDB connection error during remove_file: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"DocumentDB connection failed: {e}") from e
+            raise DatabaseTemporarilyUnavailable(
+                f"DocumentDB connection failed: {e}"
+            ) from e
 
-    def recover_orphaned_work_items(self, timeout_minutes: Optional[int] = None) -> list[str]:
+    def recover_orphaned_work_items(
+        self, timeout_minutes: Optional[int] = None
+    ) -> list[str]:
         """Recover orphaned work items stuck in processing state.
 
         Scans for work items in RESERVED state that have been reserved longer
@@ -883,7 +1029,11 @@ class DocumentDBAdapter(BaseAdapter):
         Returns:
             List of recovered work item IDs
         """
-        timeout = timeout_minutes if timeout_minutes is not None else self.orphan_timeout_minutes
+        timeout = (
+            timeout_minutes
+            if timeout_minutes is not None
+            else self.orphan_timeout_minutes
+        )
         cutoff_time = datetime.utcnow() - timedelta(minutes=timeout)
 
         LOGGER.info("Recovering orphaned work items (timeout: %s minutes)", timeout)
@@ -893,10 +1043,13 @@ class DocumentDBAdapter(BaseAdapter):
             recovered_ids = []
 
             # Find orphaned work items
-            orphaned_cursor = collection.find({
-                "state": ProcessingState.RESERVED.value,
-                "timestamps.reserved_at": {"$lt": cutoff_time}
-            }, {"item_id": 1})
+            orphaned_cursor = collection.find(
+                {
+                    "state": ProcessingState.RESERVED.value,
+                    "timestamps.reserved_at": {"$lt": cutoff_time},
+                },
+                {"item_id": 1},
+            )
 
             for document in orphaned_cursor:
                 item_id = document["item_id"]
@@ -906,8 +1059,8 @@ class DocumentDBAdapter(BaseAdapter):
                     {"item_id": item_id},
                     {
                         "$set": {"state": ProcessingState.PENDING.value},
-                        "$unset": {"timestamps.reserved_at": ""}
-                    }
+                        "$unset": {"timestamps.reserved_at": ""},
+                    },
                 )
 
                 if result.modified_count > 0:
@@ -923,12 +1076,14 @@ class DocumentDBAdapter(BaseAdapter):
 
         except (ConnectionFailure, ServerSelectionTimeoutError) as e:
             LOGGER.error("DocumentDB connection error during recovery: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"DocumentDB connection failed: {e}") from e
+            raise DatabaseTemporarilyUnavailable(
+                f"DocumentDB connection failed: {e}"
+            ) from e
 
     def close(self):
         """Close DocumentDB connection and cleanup resources."""
         try:
-            if hasattr(self, 'client') and self.client:
+            if hasattr(self, "client") and self.client:
                 self.client.close()
                 LOGGER.info("DocumentDB connection closed")
         except Exception as e:

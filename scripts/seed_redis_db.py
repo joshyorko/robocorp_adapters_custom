@@ -6,18 +6,28 @@ from pathlib import Path
 # Add project root to path so "robocorp_adapters_custom" can be imported
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+
 def load_env(env_json: Path):
     if env_json and env_json.exists():
         data = json.loads(env_json.read_text())
         for k, v in data.items():
             os.environ[k] = os.path.expandvars(v)
 
+
 def main():
-    ap = argparse.ArgumentParser(description="Seed Redis with initial work items (from work-items.json).")
-    ap.add_argument("--env", default="devdata/env-redis-producer.json",
-                    help="Env JSON that sets RC_WORKITEM_QUEUE_NAME, REDIS_HOST, etc.")
-    ap.add_argument("--json", default="devdata/work-items-in/input-for-producer/work-items.json",
-                    help="Path to work-items.json (array of objects with at least 'payload').")
+    ap = argparse.ArgumentParser(
+        description="Seed Redis with initial work items (from work-items.json)."
+    )
+    ap.add_argument(
+        "--env",
+        default="devdata/env-redis-producer.json",
+        help="Env JSON that sets RC_WORKITEM_QUEUE_NAME, REDIS_HOST, etc.",
+    )
+    ap.add_argument(
+        "--json",
+        default="devdata/work-items-in/input-for-producer/work-items.json",
+        help="Path to work-items.json (array of objects with at least 'payload').",
+    )
     args = ap.parse_args()
 
     load_env(Path(args.env))
@@ -39,7 +49,9 @@ def main():
 
     created = 0
     for wi in items:
-        payload = wi.get("payload", wi)  # be generous: accept either {"payload":{...}} or just {...}
+        payload = wi.get(
+            "payload", wi
+        )  # be generous: accept either {"payload":{...}} or just {...}
 
         file_tuples = []
         for file_info in wi.get("files", []):
@@ -61,6 +73,7 @@ def main():
     print("Next:")
     print("  rcc run -e devdata/env-redis-producer.json -t Producer")
     print("  rcc run -e devdata/env-redis-consumer.json -t Consumer")
+
 
 if __name__ == "__main__":
     main()
