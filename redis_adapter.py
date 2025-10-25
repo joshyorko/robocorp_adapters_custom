@@ -47,24 +47,22 @@ import uuid
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Optional
 
 import redis
 from redis.exceptions import ConnectionError as RedisConnectionError
 
-# Import from robocorp.workitems for proper integration
 from robocorp.workitems._adapters._base import BaseAdapter
+from robocorp.workitems._exceptions import EmptyQueue
 from robocorp.workitems._types import State
 from robocorp.workitems._utils import JSONType
-from robocorp.workitems._exceptions import EmptyQueue
 
-# Import custom exceptions
+from ._utils import with_retry
 from .exceptions import (
     AdapterError,
-    DatabaseTemporarilyUnavailable,
     ConnectionPoolExhausted,
+    DatabaseTemporarilyUnavailable,
 )
-from robocorp_adapters_custom._utils import with_retry
 
 LOGGER = logging.getLogger(__name__)
 
@@ -109,6 +107,8 @@ class RedisAdapter(BaseAdapter):
         {queue}:parent:{id}      - String (parent work item ID)
         {queue}:exception:{id}   - Hash{type, code, message} (exception details)
         {queue}:timestamps:{id}  - Hash{created_at, reserved_at, released_at}
+
+    lazydocs: ignore
     """
 
     def __init__(self):
@@ -421,7 +421,7 @@ class RedisAdapter(BaseAdapter):
             LOGGER.error("Redis connection error during create: %s", e)
             raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}") from e
 
-    def seed_input(self, payload: Optional[JSONType] = None, parent_id: str = "", files: Optional[List[Tuple[str, bytes]]] = None) -> str:
+    def seed_input(self, payload: Optional[JSONType] = None, parent_id: str = "", files: Optional[list[tuple[str, bytes]]] = None) -> str:
         """Developer helper to enqueue an item directly into the input queue."""
 
         item_id = str(uuid.uuid4())
@@ -541,7 +541,7 @@ class RedisAdapter(BaseAdapter):
             raise ValueError(f"Payload not JSON-serializable: {e}") from e
 
     @with_retry(max_retries=3, base_delay=0.1, exceptions=(RedisConnectionError, DatabaseTemporarilyUnavailable))
-    def list_files(self, item_id: str) -> List[str]:
+    def list_files(self, item_id: str) -> list[str]:
         """List attached files in work item.
 
         Args:
@@ -749,7 +749,7 @@ class RedisAdapter(BaseAdapter):
             LOGGER.error("Redis connection error during remove_file: %s", e)
             raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}") from e
 
-    def recover_orphaned_work_items(self, timeout_minutes: Optional[int] = None) -> List[str]:
+    def recover_orphaned_work_items(self, timeout_minutes: Optional[int] = None) -> list[str]:
         """Recover orphaned work items stuck in processing state.
 
         Scans the processing list and resets items that have been in RESERVED state
