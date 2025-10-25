@@ -1,4 +1,0 @@
-{
-  "name": "Robocorp Custom Adapters Dev Container",
-  "image": "ghcr.io/joshyorko/ror:latest"
-}
