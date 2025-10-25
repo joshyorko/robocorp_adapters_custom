@@ -1,9 +1,6 @@
 {
   "name": "Robocorp Custom Adapters Dev Container",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
-  "build": {
-    "dockerfile": "Dockerfile"
-  },
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2.12.4": {},
     "ghcr.io/devcontainers/features/common-utils:2.5.4": {
