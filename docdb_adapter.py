@@ -50,37 +50,34 @@ Example:
 import json
 import logging
 import os
-import uuid
 import ssl
+import uuid
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Optional
 
-import pymongo
-from pymongo import MongoClient, ASCENDING, DESCENDING
+from bson import ObjectId
+from gridfs import GridFS
+from pymongo import ASCENDING, DESCENDING, MongoClient
 from pymongo.errors import (
     ConnectionFailure,
-    ServerSelectionTimeoutError,
     DuplicateKeyError,
-    OperationFailure
+    OperationFailure,
+    ServerSelectionTimeoutError,
 )
-from gridfs import GridFS
-from bson import ObjectId
 
-# Import from robocorp.workitems for proper integration
 from robocorp.workitems._adapters._base import BaseAdapter
+from robocorp.workitems._exceptions import EmptyQueue
 from robocorp.workitems._types import State
 from robocorp.workitems._utils import JSONType
-from robocorp.workitems._exceptions import EmptyQueue
 
-# Import custom exceptions
+from ._utils import with_retry
 from .exceptions import (
     AdapterError,
-    DatabaseTemporarilyUnavailable,
     ConnectionPoolExhausted,
+    DatabaseTemporarilyUnavailable,
 )
-from robocorp_adapters_custom._utils import with_retry
 
 LOGGER = logging.getLogger(__name__)
 
@@ -149,6 +146,8 @@ class DocumentDBAdapter(BaseAdapter):
             "callid": "unique-call-identifier",  # Duplicate prevention
             "expires_at": ISODate("...")  # TTL index
         }
+
+    lazydocs: ignore
     """
 
     def __init__(self):
@@ -531,7 +530,7 @@ class DocumentDBAdapter(BaseAdapter):
             LOGGER.error("DocumentDB connection error during create: %s", e)
             raise DatabaseTemporarilyUnavailable(f"DocumentDB connection failed: {e}") from e
 
-    def seed_input(self, payload: Optional[JSONType] = None, parent_id: str = "", files: Optional[List[Tuple[str, bytes]]] = None, callid: Optional[str] = None) -> str:
+    def seed_input(self, payload: Optional[JSONType] = None, parent_id: str = "", files: Optional[list[tuple[str, bytes]]] = None, callid: Optional[str] = None) -> str:
         """Developer helper to create work item directly in input queue.
 
         This method is used by seeding scripts to populate the queue with test data.
@@ -663,7 +662,7 @@ class DocumentDBAdapter(BaseAdapter):
             raise DatabaseTemporarilyUnavailable(f"DocumentDB connection failed: {e}") from e
 
     @with_retry(max_retries=3, base_delay=0.1, exceptions=(ConnectionFailure, ServerSelectionTimeoutError, DatabaseTemporarilyUnavailable))
-    def list_files(self, item_id: str) -> List[str]:
+    def list_files(self, item_id: str) -> list[str]:
         """List attached files in work item.
 
         Args:
@@ -872,7 +871,7 @@ class DocumentDBAdapter(BaseAdapter):
             LOGGER.error("DocumentDB connection error during remove_file: %s", e)
             raise DatabaseTemporarilyUnavailable(f"DocumentDB connection failed: {e}") from e
 
-    def recover_orphaned_work_items(self, timeout_minutes: Optional[int] = None) -> List[str]:
+    def recover_orphaned_work_items(self, timeout_minutes: Optional[int] = None) -> list[str]:
         """Recover orphaned work items stuck in processing state.
 
         Scans for work items in RESERVED state that have been reserved longer
