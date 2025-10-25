@@ -29,19 +29,18 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-# Import from robocorp.workitems for proper integration
 from robocorp.workitems._adapters._base import BaseAdapter
+from robocorp.workitems._exceptions import EmptyQueue
 from robocorp.workitems._types import State
 from robocorp.workitems._utils import JSONType
-from robocorp.workitems._exceptions import EmptyQueue
 
-from .exceptions import DatabaseTemporarilyUnavailable
 from ._utils import (
     ThreadLocalConnectionPool,
-    with_retry,
-    detect_schema_version,
     apply_migration,
+    detect_schema_version,
+    with_retry,
 )
+from .exceptions import DatabaseTemporarilyUnavailable
 
 LOGGER = logging.getLogger(__name__)
 
@@ -84,6 +83,8 @@ class SQLiteAdapter(BaseAdapter):
         RC_WORKITEM_FILES_DIR: Directory for file attachments (default: devdata/work_item_files)
         RC_WORKITEM_QUEUE_NAME: Queue identifier (default: default)
         RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES: Orphan timeout (default: 30)
+
+    lazydocs: ignore
     """
 
     def __init__(self):
