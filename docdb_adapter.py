@@ -59,7 +59,7 @@ from typing import Optional
 
 from bson import ObjectId
 from gridfs import GridFS
-from pymongo import ASCENDING, DESCENDING, MongoClient
+from pymongo import ASCENDING, DESCENDING, MongoClient, ReturnDocument
 from pymongo.errors import (
     ConnectionFailure,
     DuplicateKeyError,
@@ -419,7 +419,7 @@ class DocumentDBAdapter(BaseAdapter):
                     }
                 },
                 sort=[("timestamps.created_at", ASCENDING)],
-                return_document=pymongo.ReturnDocument.AFTER,
+                return_document=ReturnDocument.AFTER,
             )
 
             if not result:
