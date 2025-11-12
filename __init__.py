@@ -19,17 +19,28 @@ import sys
 
 __version__ = "1.0.0"
 
-# Ensure support utilities are discoverable via robocorp.workitems namespace
+# Make our local modules available via robocorp.workitems namespace
+# This enables the adapters to work as drop-in replacements
 from . import _support as _support_module
+from . import _types as _types_module
+from . import _utils as _utils_module
 
 sys.modules.setdefault(
     "robocorp.workitems._adapters._support", _support_module
 )
+sys.modules.setdefault(
+    "robocorp.workitems._types", _types_module
+)
+sys.modules.setdefault(
+    "robocorp.workitems._utils", _utils_module
+)
 
 # T032: Export adapters from robocorp.workitems
 from robocorp.workitems._adapters._base import BaseAdapter
-from robocorp.workitems._types import State
 from robocorp.workitems._exceptions import EmptyQueue
+
+# Import State from our local _types module
+from ._types import State
 
 # Export our custom exception types
 from .exceptions import (
