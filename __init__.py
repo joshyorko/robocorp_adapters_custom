@@ -19,15 +19,44 @@ import sys
 
 __version__ = "1.0.0"
 
-# Make our local modules available via robocorp.workitems namespace
-# This enables the adapters to work as drop-in replacements
+# Inject our local utilities into robocorp.workitems modules to enable drop-in compatibility
+# This allows adapters to work seamlessly with the existing robocorp.workitems package
+
+# Import robocorp.workitems modules first to ensure they're loaded
+try:
+    from robocorp.workitems import _types as robocorp_types
+    from robocorp.workitems import _utils as robocorp_utils
+    from robocorp.workitems._adapters import _base as robocorp_base
+except ImportError:
+    # If robocorp.workitems is not installed, that's fine - adapters will use local modules
+    robocorp_types = None
+    robocorp_utils = None
+    robocorp_base = None
+
+# Import our local modules
 from . import _support as _support_module
 from . import _types as _types_module
 from . import _utils as _utils_module
 
+# Inject missing attributes into robocorp.workitems modules if they exist
+if robocorp_types is not None:
+    # Add TTL_WEEK_SECONDS to robocorp.workitems._types if missing
+    if not hasattr(robocorp_types, 'TTL_WEEK_SECONDS'):
+        robocorp_types.TTL_WEEK_SECONDS = _types_module.TTL_WEEK_SECONDS
+        
+if robocorp_utils is not None:
+    # Add JSONType and required_env to robocorp.workitems._utils if missing
+    if not hasattr(robocorp_utils, 'JSONType'):
+        robocorp_utils.JSONType = _utils_module.JSONType
+    if not hasattr(robocorp_utils, 'required_env'):
+        robocorp_utils.required_env = _utils_module.required_env
+
+# Map our _support module to robocorp.workitems._adapters._support
 sys.modules.setdefault(
     "robocorp.workitems._adapters._support", _support_module
 )
+
+# Also provide fallback mappings for our local modules
 sys.modules.setdefault(
     "robocorp.workitems._types", _types_module
 )
