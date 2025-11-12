@@ -11,7 +11,7 @@ import time
 from contextlib import contextmanager
 from typing import Any, Callable, Generic, Optional, TypeVar
 
-from .._exceptions import ApplicationException
+from robocorp.workitems._exceptions import ApplicationException
 
 LOGGER = logging.getLogger(__name__)
 

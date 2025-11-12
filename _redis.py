@@ -33,11 +33,11 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-from .._exceptions import ApplicationException, EmptyQueue
-from .._types import TTL_WEEK_SECONDS, State
-from .._utils import JSONType
-from ._base import BaseAdapter
-from ._support import with_retry
+from robocorp.workitems._exceptions import ApplicationException, EmptyQueue
+from robocorp.workitems._types import TTL_WEEK_SECONDS, State
+from robocorp.workitems._utils import JSONType
+from robocorp.workitems._adapters._base import BaseAdapter
+from robocorp.workitems._adapters._support import with_retry
 
 LOGGER = logging.getLogger(__name__)
 
