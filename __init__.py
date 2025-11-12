@@ -15,6 +15,10 @@ Usage:
 See quickstart.md for setup guides.
 """
 
+# ruff: noqa: E402
+# Note: Module-level imports must occur after attribute injection to ensure
+# drop-in compatibility with robocorp.workitems package
+
 import sys
 
 __version__ = "1.0.0"
