@@ -6,11 +6,12 @@ Custom Work Item Adapters for Robocorp Producer-Consumer Automation
 ---
 
 ## Overview
-This repository provides custom adapters for Robocorp's workitems library, enabling scalable producer-consumer automation workflows with pluggable backend support (SQLite, Redis, Amazon DocumentDB/MongoDB, etc.). The architecture is designed for easy backend switching via environment variables, supporting both local development and distributed cloud deployments.
+This repository provides custom adapters for Robocorp's workitems library, enabling scalable producer-consumer automation workflows with pluggable backend support (SQLite, Redis, Amazon DocumentDB/MongoDB, Yorko Control Room, etc.). The architecture is designed for easy backend switching via environment variables, supporting both local development and distributed cloud deployments.
 
 ## Features
-- **Pluggable Adapter Pattern**: Easily switch between SQLite, Redis, Amazon DocumentDB/MongoDB, and other backends by changing environment variables.
+- **Pluggable Adapter Pattern**: Easily switch between SQLite, Redis, Amazon DocumentDB/MongoDB, Yorko Control Room, and other backends by changing environment variables.
 - **Producer-Consumer Workflows**: Modular tasks for producing, consuming, and reporting on work items.
+- **Control Room Integration**: Connect robots to self-hosted Yorko Control Room via REST API.
 - **Orphan Recovery**: Built-in scripts and adapter logic for recovering orphaned work items.
 - **File Attachments**: Hybrid storage (inline for small files, GridFS for large files in DocumentDB, filesystem for other adapters).
 - **Automatic Schema Migration**: SQLite adapter supports seamless schema upgrades.
@@ -18,7 +19,7 @@ This repository provides custom adapters for Robocorp's workitems library, enabl
 - **Cloud-Native Support**: DocumentDB adapter optimized for AWS environments with TLS/SSL encryption and replica set support.
 
 ## Key Components
-- `sqlite_adapter.py`, `redis_adapter.py`, `docdb_adapter.py`: Custom adapters implementing the `BaseAdapter` interface.
+- `_sqlite.py`, `_redis.py`, `_docdb.py`, `_yorko_control_room.py`: Custom adapters implementing the `BaseAdapter` interface.
 - `workitems_integration.py`: Dynamic adapter loader for seamless backend switching.
 - `scripts/config.py`: Loads and validates environment-based configuration.
 - `scripts/seed_sqlite_db.py`, `scripts/seed_redis_db.py`, `scripts/seed_docdb_db.py`: Seed scripts for populating test data.
@@ -46,9 +47,10 @@ No code changes are required—just update your environment configuration and yo
 
 ### 2. Adapter Selection
 Set the `RC_WORKITEM_ADAPTER` environment variable to select your backend:
-- **SQLite**: `robocorp_adapters_custom.sqlite_adapter.SQLiteAdapter`
-- **Redis**: `robocorp_adapters_custom.redis_adapter.RedisAdapter`
-- **DocumentDB/MongoDB**: `robocorp_adapters_custom.docdb_adapter.DocumentDBAdapter`
+- **SQLite**: `robocorp_adapters_custom._sqlite.SQLiteAdapter`
+- **Redis**: `robocorp_adapters_custom._redis.RedisAdapter`
+- **DocumentDB/MongoDB**: `robocorp_adapters_custom._docdb.DocumentDBAdapter`
+- **Yorko Control Room**: `robocorp_adapters_custom._yorko_control_room.YorkoControlRoomAdapter`
 
 Other required variables:
 - **SQLite**: `RC_WORKITEM_DB_PATH=devdata/work_items.db`
@@ -56,6 +58,7 @@ Other required variables:
 - **DocumentDB**: `DOCDB_HOSTNAME=localhost`, `DOCDB_PORT=27017`, `DOCDB_USERNAME=<user>`, `DOCDB_PASSWORD=<pass>`, `DOCDB_DATABASE=<dbname>`
   - For AWS DocumentDB: Also set `DOCDB_TLS_CERT=<path/to/rds-combined-ca-bundle.pem>`
   - Alternatively, use: `DOCDB_URI=mongodb://<user>:<pass>@<host>:<port>/?ssl=true`
+- **Yorko Control Room**: `YORKO_API_URL=http://localhost:8000`, `YORKO_API_TOKEN=<token>`, `YORKO_WORKSPACE_ID=<uuid>`, `YORKO_WORKER_ID=<worker-id>`
 
 ### 3. Running Tasks
 Use RCC or the `robot.yaml` tasks:
@@ -80,6 +83,13 @@ rcc run -t Producer -e devdata/env-docdb-local-producer.json
 rcc run -t Consumer -e devdata/env-docdb-local-consumer.json
 rcc run -t Reporter -e devdata/env-docdb-local-reporter.json
 ```
+
+**Yorko Control Room:**
+```sh
+rcc run -t Producer -e devdata/env-yorko-control-room-producer.json
+rcc run -t Consumer -e devdata/env-yorko-control-room-consumer.json
+```
+See [Yorko Control Room Adapter Guide](docs/YORKO_CONTROL_ROOM_ADAPTER.md) for detailed setup.
 
 ### 4. Seeding and Debugging
 - Seed SQLite: `python scripts/seed_sqlite_db.py`

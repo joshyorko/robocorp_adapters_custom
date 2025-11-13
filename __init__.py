@@ -1,19 +1,28 @@
-"""Custom work item adapters for Robocorp workitems library.
+"""Custom Work Item Adapters for Robocorp Producer-Consumer Automation.
 
-This package provides open-source database-backed adapters compatible with
-robocorp-workitems>=1.4.7 as alternatives to proprietary Robocorp Control Room.
+This package provides custom adapters for the Robocorp workitems library, enabling
+scalable producer-consumer automation workflows with pluggable backend support.
 
-Available adapters:
-- SQLiteAdapter: Local development and small-scale deployments
-- RedisAdapter: Distributed processing with high throughput
-- PostgresAdapter: Enterprise production with ACID compliance
+Supported Adapters:
+    - SQLiteAdapter: Local/embedded database backend
+    - RedisAdapter: Distributed Redis backend with clustering support
+    - DocumentDBAdapter: AWS DocumentDB/MongoDB backend
+    - YorkoControlRoomAdapter: HTTP REST API adapter for Yorko Control Room
 
 Usage:
-    Configure adapter via environment variable RC_WORKITEM_ADAPTER:
-    export RC_WORKITEM_ADAPTER="robocorp_adapters_custom.sqlite_adapter.SQLiteAdapter"
-
-See quickstart.md for setup guides.
+    Set RC_WORKITEM_ADAPTER environment variable to select your backend:
+    - robocorp_adapters_custom._sqlite.SQLiteAdapter
+    - robocorp_adapters_custom._redis.RedisAdapter
+    - robocorp_adapters_custom._docdb.DocumentDBAdapter
+    - robocorp_adapters_custom._yorko_control_room.YorkoControlRoomAdapter
 """
+
+__version__ = "0.1.0"
+
+__all__ = [
+    "exceptions",
+    "workitems_integration",
+]
 
 # ruff: noqa: E402
 # Note: Module-level imports must occur after attribute injection to ensure
