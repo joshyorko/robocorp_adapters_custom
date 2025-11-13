@@ -18,7 +18,11 @@ from robocorp.workitems._adapters._docdb import DocumentDBAdapter
 from robocorp.workitems._adapters._redis import RedisAdapter
 from robocorp.workitems._adapters._sqlite import SQLiteAdapter
 from robocorp.workitems._requests import DEBUG, HTTPError
-from robocorp.workitems._types import TTL_WEEK_SECONDS, State
+
+# Import from our local _types module (mapped via sys.modules in __init__.py)
+from robocorp.workitems._types import State
+# TTL_WEEK_SECONDS is defined in our local _types module
+TTL_WEEK_SECONDS = 604800  # 7 * 24 * 60 * 60
 
 from .mocks import MOCK_FILES, PAYLOAD_FIRST, PAYLOAD_SECOND
 

@@ -33,10 +33,12 @@ from pathlib import Path
 from typing import Optional
 
 from robocorp.workitems._exceptions import ApplicationException, EmptyQueue
-from robocorp.workitems._types import State
-from robocorp.workitems._utils import JSONType, required_env
 from robocorp.workitems._adapters._base import BaseAdapter
-from robocorp.workitems._adapters._support import ThreadLocalConnectionPool, with_retry
+
+# Import from local modules for drop-in replacement functionality
+from ._types import State
+from ._utils import JSONType, required_env
+from ._support import ThreadLocalConnectionPool, with_retry
 
 LOGGER = logging.getLogger(__name__)
 

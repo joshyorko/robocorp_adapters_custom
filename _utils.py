@@ -4,10 +4,13 @@ This module provides:
 - Connection pooling utilities
 - Retry logic with exponential backoff
 - Schema migration helpers
+- Environment variable utilities
+- Type aliases
 """
 
 import functools
 import logging
+import os
 import random
 import threading
 import time
@@ -16,6 +19,33 @@ from typing import Callable, Any, TypeVar
 LOGGER = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+# Type alias for JSON-serializable data (matches robocorp.workitems._utils.JSONType)
+JSONType = dict[str, Any] | list | str | int | float | bool | None
+
+
+def required_env(key: str) -> str:
+    """Get required environment variable.
+    
+    Args:
+        key: Environment variable name
+        
+    Returns:
+        Environment variable value
+        
+    Raises:
+        KeyError: If environment variable is not set
+        
+    Example:
+        db_path = required_env("RC_WORKITEM_DB_PATH")
+    """
+    value = os.getenv(key)
+    if value is None:
+        raise KeyError(
+            f"Required environment variable '{key}' is not set. "
+            f"Please set it before using this adapter."
+        )
+    return value
 
 
 # T009: Connection pooling utility functions
