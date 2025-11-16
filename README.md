@@ -5,6 +5,59 @@ Custom Work Item Adapters for Robocorp Producer-Consumer Automation
 
 ---
 
+## Installation
+
+### As a Python Package (Recommended)
+
+Install directly using pip:
+
+```bash
+# Basic installation (includes SQLite adapter)
+pip install robocorp-adapters-custom
+
+# With Redis support
+pip install robocorp-adapters-custom[redis]
+
+# With MongoDB/DocumentDB support
+pip install robocorp-adapters-custom[mongodb]
+
+# With all optional adapters
+pip install robocorp-adapters-custom[all]
+```
+
+**Quick Usage:**
+
+```python
+import os
+from robocorp_adapters_custom import get_adapter_instance, State
+
+# Configure your adapter
+os.environ["RC_WORKITEM_ADAPTER"] = "robocorp_adapters_custom._sqlite.SQLiteAdapter"
+os.environ["RC_WORKITEM_DB_PATH"] = "work_items.db"
+os.environ["RC_WORKITEM_QUEUE_NAME"] = "my_queue"
+
+# Use the adapter
+adapter = get_adapter_instance()
+item_id = adapter.reserve_input()
+payload = adapter.load_payload(item_id)
+# ... process work item ...
+adapter.release_input(item_id, State.DONE)
+```
+
+For detailed installation instructions, see [INSTALLATION.md](INSTALLATION.md).
+
+### From Source (Development)
+
+Clone the repository for development:
+
+```bash
+git clone https://github.com/joshyorko/robocorp_adapters_custom.git
+cd robocorp_adapters_custom
+pip install -e .[dev]
+```
+
+---
+
 ## Overview
 This repository provides custom adapters for Robocorp's workitems library, enabling scalable producer-consumer automation workflows with pluggable backend support (SQLite, Redis, Amazon DocumentDB/MongoDB, Yorko Control Room, etc.). The architecture is designed for easy backend switching via environment variables, supporting both local development and distributed cloud deployments.
 
@@ -29,20 +82,45 @@ This repository provides custom adapters for Robocorp's workitems library, enabl
 
 ## Getting Started
 
-### Quick Integration
-To use these adapters in your own Robocorp project:
+### Quick Integration (Using pip)
+
+The easiest way to use these adapters in your Robocorp project:
+
+1. **Install the package** in your project environment:
+   ```bash
+   pip install robocorp-adapters-custom[all]
+   ```
+
+2. **Configure the adapter** via environment variables:
+   ```bash
+   export RC_WORKITEM_ADAPTER=robocorp_adapters_custom._sqlite.SQLiteAdapter
+   export RC_WORKITEM_DB_PATH=work_items.db
+   export RC_WORKITEM_QUEUE_NAME=my_queue
+   ```
+
+3. **Use in your code**:
+   ```python
+   from robocorp_adapters_custom import get_adapter_instance
+   adapter = get_adapter_instance()
+   ```
+
+No code changes required—just install, configure, and go!
+
+### Alternative: Using from Repository
+
+If you prefer to work directly from source:
 
 1. **Clone this repository** into your project or workspace.
-2. **Change your adapter class name** to one of the provided adapters:
-   - SQLite: `robocorp_adapters_custom.sqlite_adapter.SQLiteAdapter`
-   - Redis: `robocorp_adapters_custom.redis_adapter.RedisAdapter`
-   - DocumentDB/MongoDB: `robocorp_adapters_custom.docdb_adapter.DocumentDBAdapter`
-	- Set the `RC_WORKITEM_ADAPTER` environment variable accordingly.
-3. **Alternatively**, use one of the pre-configured environment JSON files in `devdata/` to set all required variables for your chosen backend. Simply reference the desired file when running RCC or your robot tasks.
+2. **Set the adapter class** via environment variable:
+   - SQLite: `robocorp_adapters_custom._sqlite.SQLiteAdapter`
+   - Redis: `robocorp_adapters_custom._redis.RedisAdapter`
+   - DocumentDB/MongoDB: `robocorp_adapters_custom._docdb.DocumentDBAdapter`
+   - Yorko Control Room: `robocorp_adapters_custom._yorko_control_room.YorkoControlRoomAdapter`
+3. **Use pre-configured environment files** from `devdata/` for quick setup.
 
-No code changes are required—just update your environment configuration and you're ready to go!
 ### 1. Environment Setup
-- Clone the repository and install dependencies using the provided `conda.yaml`.
+- Install the package with `pip install robocorp-adapters-custom[all]`
+- Or clone the repository and install dependencies using the provided `conda.yaml`.
 - Configure environment variables for your chosen adapter (see below).
 
 ### 2. Adapter Selection
@@ -129,14 +207,15 @@ See [Yorko Control Room Adapter Guide](docs/YORKO_CONTROL_ROOM_ADAPTER.md) for d
 - **MongoDB Compatibility**: Drop-in replacement for existing MongoDB-based workflows
 
 ## References & Documentation
-- Adapter implementation: `docs/CUSTOM_WORKITEM_ADAPTER_GUIDE.md`
-- Adapter interface: `docs/ADAPTER_RESEARCH_SUMMARY.md`
-- Producer-consumer architecture: `docs/# Producer-Consumer Architecture Migrati.md`
-- Task definitions: `yamls/robot.yaml`
-- Environment setup: `yamls/conda.yaml`, `devdata/`
+- **Installation Guide**: [INSTALLATION.md](INSTALLATION.md) - Complete installation and setup instructions
+- **Adapter Implementation**: [docs/CUSTOM_WORKITEM_ADAPTER_GUIDE.md](docs/CUSTOM_WORKITEM_ADAPTER_GUIDE.md)
+- **Adapter Interface**: [docs/ADAPTER_RESEARCH_SUMMARY.md](docs/ADAPTER_RESEARCH_SUMMARY.md)
+- **Producer-Consumer Architecture**: [docs/# Producer-Consumer Architecture Migrati.md](docs/# Producer-Consumer Architecture Migrati.md)
+- **Task Definitions**: [yamls/robot.yaml](yamls/robot.yaml)
+- **Environment Setup**: [yamls/conda.yaml](yamls/conda.yaml), [devdata/](devdata/)
 
 ## License
-[MIT](LICENSE) (or project-specific license)
+[MIT](LICENSE)
 
 ---
-**Tip:** Always check the relevant YAML and devdata files for environment setup and test data before running tasks or debugging issues.
+**Tip:** For quick start, see [INSTALLATION.md](INSTALLATION.md). For development from source, check the relevant YAML and devdata files for environment setup and test data.

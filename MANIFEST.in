@@ -1,0 +1,16 @@
+include README.md
+include LICENSE
+include pyproject.toml
+
+# Include documentation
+recursive-include docs *.md *.png
+
+# Exclude build artifacts, cache, and test files
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude .DS_Store
+prune devdata
+prune yamls
+prune scripts
+prune workitems_tests
+prune .github
