@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+robocorp_adapters_custom/__init__.py
+robocorp_adapters_custom/_docdb.py
+robocorp_adapters_custom/_redis.py
+robocorp_adapters_custom/_sqlite.py
+robocorp_adapters_custom/_support.py
+robocorp_adapters_custom/_types.py
+robocorp_adapters_custom/_utils.py
+robocorp_adapters_custom/_yorko_control_room.py
+robocorp_adapters_custom/exceptions.py
+robocorp_adapters_custom/workitems_integration.py
+robocorp_adapters_custom.egg-info/PKG-INFO
+robocorp_adapters_custom.egg-info/SOURCES.txt
+robocorp_adapters_custom.egg-info/dependency_links.txt
+robocorp_adapters_custom.egg-info/requires.txt
+robocorp_adapters_custom.egg-info/top_level.txt

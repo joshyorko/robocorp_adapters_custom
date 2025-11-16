@@ -3,3 +3,9 @@
 __pycache__/
 .ipynb_checkpoints/
 .env
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+*.egg
