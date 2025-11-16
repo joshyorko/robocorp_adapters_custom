@@ -1,4 +1,4 @@
-# ![Project Logo](docs/logo.png)
+# ![Project Logo](https://raw.githubusercontent.com/joshyorko/robocorp_adapters_custom/main/docs/logo.png)
 # robocorp_adapters_custom
 
 Custom Work Item Adapters for Robocorp Producer-Consumer Automation
