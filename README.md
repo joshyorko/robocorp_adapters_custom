@@ -27,22 +27,49 @@ This repository provides custom adapters for Robocorp's workitems library, enabl
 - `devdata/`: Environment configs, input/output data, and test artifacts.
 - `docs/`: Implementation guides and architecture documentation.
 
+## Installation
+
+This project is packaged as a standard Python package using `pyproject.toml` and can be installed via pip.
+
+### Install from PyPI (when published)
+```sh
+pip install robocorp-adapters-custom
+```
+
+### Install from Source
+```sh
+# Clone the repository
+git clone https://github.com/joshyorko/robocorp_adapters_custom.git
+cd robocorp_adapters_custom
+
+# Install in development mode
+pip install -e .
+
+# Install with development dependencies
+pip install -e ".[dev]"
+```
+
+### Requirements
+- Python 3.10+
+- Dependencies are automatically installed: `robocorp-workitems`, `requests`, `redis`, `pymongo`
+
 ## Getting Started
 
 ### Quick Integration
 To use these adapters in your own Robocorp project:
 
-1. **Clone this repository** into your project or workspace.
-2. **Change your adapter class name** to one of the provided adapters:
-   - SQLite: `robocorp_adapters_custom.sqlite_adapter.SQLiteAdapter`
-   - Redis: `robocorp_adapters_custom.redis_adapter.RedisAdapter`
-   - DocumentDB/MongoDB: `robocorp_adapters_custom.docdb_adapter.DocumentDBAdapter`
-	- Set the `RC_WORKITEM_ADAPTER` environment variable accordingly.
-3. **Alternatively**, use one of the pre-configured environment JSON files in `devdata/` to set all required variables for your chosen backend. Simply reference the desired file when running RCC or your robot tasks.
+1. **Install the package** using pip (see Installation above).
+2. **Set the `RC_WORKITEM_ADAPTER` environment variable** to select your adapter:
+   - SQLite: `robocorp_adapters_custom._sqlite.SQLiteAdapter`
+   - Redis: `robocorp_adapters_custom._redis.RedisAdapter`
+   - DocumentDB/MongoDB: `robocorp_adapters_custom._docdb.DocumentDBAdapter`
+   - Yorko Control Room: `robocorp_adapters_custom._yorko_control_room.YorkoControlRoomAdapter`
+3. **Alternatively**, use one of the pre-configured environment JSON files in `devdata/` to set all required variables for your chosen backend when running RCC or your robot tasks.
 
-No code changes are required—just update your environment configuration and you're ready to go!
+No code changes are required—just install the package, update your environment configuration, and you're ready to go!
+
 ### 1. Environment Setup
-- Clone the repository and install dependencies using the provided `conda.yaml`.
+- Install the package via pip or clone the repository.
 - Configure environment variables for your chosen adapter (see below).
 
 ### 2. Adapter Selection
