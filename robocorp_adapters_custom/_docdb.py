@@ -27,6 +27,7 @@ import hashlib
 import logging
 import os
 import uuid
+from urllib.parse import quote_plus
 from collections.abc import Iterator, MutableMapping
 from datetime import datetime, timedelta
 from enum import Enum
@@ -154,7 +155,22 @@ class DocumentDBAdapter(BaseAdapter):
             )
 
         # Load configuration
-        self.docdb_uri = required_env("DOCDB_URI")
+        self.docdb_uri = os.getenv("DOCDB_URI")
+        if not self.docdb_uri:
+            # Try to construct from components
+            host = os.getenv("DOCDB_HOSTNAME")
+            port = os.getenv("DOCDB_PORT", "27017")
+            username = os.getenv("DOCDB_USERNAME")
+            password = os.getenv("DOCDB_PASSWORD")
+
+            if host and username and password:
+                self.docdb_uri = f"mongodb://{quote_plus(username)}:{quote_plus(password)}@{host}:{port}"
+            elif host:
+                self.docdb_uri = f"mongodb://{host}:{port}"
+            else:
+                # Fallback to required_env to raise the error if still missing
+                self.docdb_uri = required_env("DOCDB_URI")
+
         self.docdb_database = required_env("DOCDB_DATABASE")
         self.queue_name = os.getenv("RC_WORKITEM_QUEUE_NAME", "default")
         self.output_queue_name = f"{self.queue_name}_output"
