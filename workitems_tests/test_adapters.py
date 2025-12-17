@@ -779,6 +779,64 @@ class TestSQLiteAdapter:
         with pytest.raises(ValueError):
             adapter.load_payload(fake_id)
 
+    def test_custom_output_queue_name(self, tmp_path, monkeypatch):
+        """Test that RC_WORKITEM_OUTPUT_QUEUE_NAME overrides default output queue naming."""
+        db_path = tmp_path / "test_workitems.db"
+        files_dir = tmp_path / "files"
+        
+        # Set custom output queue name
+        monkeypatch.setenv("RC_WORKITEM_DB_PATH", str(db_path))
+        monkeypatch.setenv("RC_WORKITEM_FILES_DIR", str(files_dir))
+        monkeypatch.setenv("RC_WORKITEM_QUEUE_NAME", "qa_forms_output")
+        monkeypatch.setenv("RC_WORKITEM_OUTPUT_QUEUE_NAME", "qa_forms_output_processed")
+        
+        adapter = SQLiteAdapter()
+        
+        # Verify the output queue name is customized
+        assert adapter.output_queue_name == "qa_forms_output_processed"
+        assert adapter.output_queue_name != f"{adapter.queue_name}_output"
+        
+        # Create an output item and verify it goes to the custom queue
+        item_id = adapter.create_output(None, {"test": "data"})
+        
+        # Check the database to verify the queue name
+        with adapter._pool.acquire() as conn:
+            cursor = conn.execute(
+                "SELECT queue_name FROM work_items WHERE id = ?",
+                (item_id,),
+            )
+            row = cursor.fetchone()
+            assert row is not None
+            assert row[0] == "qa_forms_output_processed"
+
+    def test_default_output_queue_name_backward_compatibility(self, tmp_path, monkeypatch):
+        """Test that output queue defaults to {queue_name}_output for backward compatibility."""
+        db_path = tmp_path / "test_workitems.db"
+        files_dir = tmp_path / "files"
+        
+        # Do NOT set RC_WORKITEM_OUTPUT_QUEUE_NAME
+        monkeypatch.setenv("RC_WORKITEM_DB_PATH", str(db_path))
+        monkeypatch.setenv("RC_WORKITEM_FILES_DIR", str(files_dir))
+        monkeypatch.setenv("RC_WORKITEM_QUEUE_NAME", "qa_forms")
+        
+        adapter = SQLiteAdapter()
+        
+        # Verify default behavior is preserved
+        assert adapter.output_queue_name == "qa_forms_output"
+        
+        # Create an output item and verify it goes to the default queue
+        item_id = adapter.create_output(None, {"test": "data"})
+        
+        # Check the database to verify the queue name
+        with adapter._pool.acquire() as conn:
+            cursor = conn.execute(
+                "SELECT queue_name FROM work_items WHERE id = ?",
+                (item_id,),
+            )
+            row = cursor.fetchone()
+            assert row is not None
+            assert row[0] == "qa_forms_output"
+
 
 def _create_redis_input_item(adapter, payload):
     """Helper to create item directly in Redis INPUT queue for testing."""
@@ -1014,6 +1072,62 @@ class TestRedisAdapter:
 
         with pytest.raises(ValueError):
             adapter.save_payload(fake_id, {"data": "value"})
+
+    def test_custom_output_queue_name(self, monkeypatch, tmp_path):
+        """Test that RC_WORKITEM_OUTPUT_QUEUE_NAME overrides default output queue naming."""
+        redis_url = os.getenv("RC_REDIS_URL", "redis://localhost:6379/0")
+        files_dir = tmp_path / "files"
+        
+        # Set custom output queue name
+        monkeypatch.setenv("RC_REDIS_URL", redis_url)
+        monkeypatch.setenv("RC_WORKITEM_FILES_DIR", str(files_dir))
+        monkeypatch.setenv("RC_WORKITEM_QUEUE_NAME", "qa_forms_output")
+        monkeypatch.setenv("RC_WORKITEM_OUTPUT_QUEUE_NAME", "qa_forms_output_processed")
+        
+        adapter = RedisAdapter()
+        
+        # Verify the output queue name is customized
+        assert adapter.output_queue_name == "qa_forms_output_processed"
+        assert adapter.output_queue_name != f"{adapter.queue_name}_output"
+        
+        # Create an output item and verify it goes to the custom queue
+        item_id = adapter.create_output(None, {"test": "data"})
+        
+        # Check Redis to verify the queue name
+        payload_key = adapter._key("payload", queue="qa_forms_output_processed", item_id=item_id)
+        payload_data = adapter._client.hget(payload_key, "queue_name")
+        assert payload_data is not None
+        assert payload_data.decode() == "qa_forms_output_processed"
+        
+        # Cleanup
+        adapter._client.flushdb()
+
+    def test_default_output_queue_name_backward_compatibility(self, monkeypatch, tmp_path):
+        """Test that output queue defaults to {queue_name}_output for backward compatibility."""
+        redis_url = os.getenv("RC_REDIS_URL", "redis://localhost:6379/0")
+        files_dir = tmp_path / "files"
+        
+        # Do NOT set RC_WORKITEM_OUTPUT_QUEUE_NAME
+        monkeypatch.setenv("RC_REDIS_URL", redis_url)
+        monkeypatch.setenv("RC_WORKITEM_FILES_DIR", str(files_dir))
+        monkeypatch.setenv("RC_WORKITEM_QUEUE_NAME", "qa_forms")
+        
+        adapter = RedisAdapter()
+        
+        # Verify default behavior is preserved
+        assert adapter.output_queue_name == "qa_forms_output"
+        
+        # Create an output item and verify it goes to the default queue
+        item_id = adapter.create_output(None, {"test": "data"})
+        
+        # Check Redis to verify the queue name
+        payload_key = adapter._key("payload", queue="qa_forms_output", item_id=item_id)
+        payload_data = adapter._client.hget(payload_key, "queue_name")
+        assert payload_data is not None
+        assert payload_data.decode() == "qa_forms_output"
+        
+        # Cleanup
+        adapter._client.flushdb()
 
 
 @pytest.mark.integration
@@ -1284,3 +1398,69 @@ class TestDocumentDBAdapter:
         # Large file should be GridFS reference
         assert isinstance(doc["files"]["large.bin"], dict)
         assert "gridfs_id" in doc["files"]["large.bin"]
+
+    def test_custom_output_queue_name(self, monkeypatch, tmp_path):
+        """Test that RC_WORKITEM_OUTPUT_QUEUE_NAME overrides default output queue naming."""
+        from pymongo import MongoClient  # type: ignore[import-not-found]
+
+        mongo_url = os.getenv("RC_MONGO_URL", "mongodb://localhost:27017")
+        mongo_db = os.getenv("RC_MONGO_DB", "workitems_test")
+        files_dir = tmp_path / "files"
+        
+        # Set custom output queue name
+        monkeypatch.setenv("DOCDB_URI", mongo_url)
+        monkeypatch.setenv("DOCDB_DATABASE", mongo_db)
+        monkeypatch.setenv("RC_WORKITEM_FILES_DIR", str(files_dir))
+        monkeypatch.setenv("RC_WORKITEM_QUEUE_NAME", "qa_forms_output")
+        monkeypatch.setenv("RC_WORKITEM_OUTPUT_QUEUE_NAME", "qa_forms_output_processed")
+        
+        adapter = DocumentDBAdapter()
+        
+        # Verify the output queue name is customized
+        assert adapter.output_queue_name == "qa_forms_output_processed"
+        assert adapter.output_queue_name != f"{adapter.queue_name}_output"
+        
+        # Create an output item and verify it goes to the custom queue
+        item_id = adapter.create_output(None, {"test": "data"})
+        
+        # Check MongoDB to verify the queue name
+        coll = adapter._collection(queue="qa_forms_output_processed")
+        doc = coll.find_one({"item_id": item_id})
+        assert doc is not None
+        assert doc["queue_name"] == "qa_forms_output_processed"
+        
+        # Cleanup
+        client = MongoClient(mongo_url)
+        client.drop_database(mongo_db)
+
+    def test_default_output_queue_name_backward_compatibility(self, monkeypatch, tmp_path):
+        """Test that output queue defaults to {queue_name}_output for backward compatibility."""
+        from pymongo import MongoClient  # type: ignore[import-not-found]
+
+        mongo_url = os.getenv("RC_MONGO_URL", "mongodb://localhost:27017")
+        mongo_db = os.getenv("RC_MONGO_DB", "workitems_test")
+        files_dir = tmp_path / "files"
+        
+        # Do NOT set RC_WORKITEM_OUTPUT_QUEUE_NAME
+        monkeypatch.setenv("DOCDB_URI", mongo_url)
+        monkeypatch.setenv("DOCDB_DATABASE", mongo_db)
+        monkeypatch.setenv("RC_WORKITEM_FILES_DIR", str(files_dir))
+        monkeypatch.setenv("RC_WORKITEM_QUEUE_NAME", "qa_forms")
+        
+        adapter = DocumentDBAdapter()
+        
+        # Verify default behavior is preserved
+        assert adapter.output_queue_name == "qa_forms_output"
+        
+        # Create an output item and verify it goes to the default queue
+        item_id = adapter.create_output(None, {"test": "data"})
+        
+        # Check MongoDB to verify the queue name
+        coll = adapter._collection(queue="qa_forms_output")
+        doc = coll.find_one({"item_id": item_id})
+        assert doc is not None
+        assert doc["queue_name"] == "qa_forms_output"
+        
+        # Cleanup
+        client = MongoClient(mongo_url)
+        client.drop_database(mongo_db)
