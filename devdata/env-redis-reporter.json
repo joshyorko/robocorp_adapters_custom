@@ -7,6 +7,6 @@
   "REDIS_PASSWORD": "",
   "REDIS_MAX_CONNECTIONS": "50",
   "RC_WORKITEM_FILES_DIR": "devdata/work_item_files",
-  "RC_WORKITEM_QUEUE_NAME": "qa_forms_output_output",
+  "RC_WORKITEM_QUEUE_NAME": "qa_forms_output_processed",
   "RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES": "30"
 }

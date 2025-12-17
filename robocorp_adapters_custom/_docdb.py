@@ -135,6 +135,7 @@ class DocumentDBAdapter(BaseAdapter):
         DOCDB_URI: MongoDB connection URI (required)
         DOCDB_DATABASE: Database name (required)
         RC_WORKITEM_QUEUE_NAME: Queue identifier (default: default)
+        RC_WORKITEM_OUTPUT_QUEUE_NAME: Output queue name (optional, default: {queue_name}_output)
         RC_WORKITEM_FILES_DIR: Files directory (default: devdata/work_item_files)
         RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES: Orphan timeout (default: 30)
 
@@ -173,7 +174,9 @@ class DocumentDBAdapter(BaseAdapter):
 
         self.docdb_database = required_env("DOCDB_DATABASE")
         self.queue_name = os.getenv("RC_WORKITEM_QUEUE_NAME", "default")
-        self.output_queue_name = f"{self.queue_name}_output"
+        self.output_queue_name = os.getenv(
+            "RC_WORKITEM_OUTPUT_QUEUE_NAME", f"{self.queue_name}_output"
+        )
         self.files_dir = Path(
             os.getenv("RC_WORKITEM_FILES_DIR", "devdata/work_item_files")
         )
