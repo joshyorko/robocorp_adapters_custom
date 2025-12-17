@@ -84,6 +84,7 @@ class SQLiteAdapter(BaseAdapter):
         RC_WORKITEM_DB_PATH: Path to SQLite database file (required)
         RC_WORKITEM_FILES_DIR: Directory for file attachments (default: devdata/work_item_files)
         RC_WORKITEM_QUEUE_NAME: Queue identifier (default: default)
+        RC_WORKITEM_OUTPUT_QUEUE_NAME: Output queue name (optional, default: {queue_name}_output)
         RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES: Orphan timeout (default: 30)
 
     lazydocs: ignore
@@ -105,6 +106,9 @@ class SQLiteAdapter(BaseAdapter):
             os.getenv("RC_WORKITEM_FILES_DIR", "devdata/work_item_files")
         )
         self.queue_name = os.getenv("RC_WORKITEM_QUEUE_NAME", "default")
+        self.output_queue_name = os.getenv(
+            "RC_WORKITEM_OUTPUT_QUEUE_NAME", f"{self.queue_name}_output"
+        )
         self.orphan_timeout_minutes = int(
             os.getenv("RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES", "30")
         )
@@ -462,7 +466,7 @@ class SQLiteAdapter(BaseAdapter):
 
         Output Queue Strategy:
             - Input queue: {queue_name} (e.g., "qa_forms")
-            - Output queue: {queue_name}_output (e.g., "qa_forms_output")
+            - Output queue: Configured via RC_WORKITEM_OUTPUT_QUEUE_NAME or defaults to {queue_name}_output
             - Outputs are NOT consumed by reserve_input()
 
         Args:
@@ -474,7 +478,7 @@ class SQLiteAdapter(BaseAdapter):
         """
         item_id = str(uuid.uuid4())
         payload_json = json.dumps(payload if payload is not None else {})
-        output_queue = f"{self.queue_name}_output"
+        output_queue = self.output_queue_name
 
         LOGGER.debug(
             "Creating output work item for parent %s in queue %s",

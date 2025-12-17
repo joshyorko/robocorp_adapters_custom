@@ -101,6 +101,7 @@ class RedisAdapter(BaseAdapter):
     Environment Variables:
         RC_REDIS_URL: Redis connection URL (default: redis://localhost:6379/0)
         RC_WORKITEM_QUEUE_NAME: Queue identifier (default: default)
+        RC_WORKITEM_OUTPUT_QUEUE_NAME: Output queue name (optional, default: {queue_name}_output)
         RC_WORKITEM_FILES_DIR: Files directory (default: devdata/work_item_files)
         RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES: Orphan timeout (default: 30)
 
@@ -123,7 +124,9 @@ class RedisAdapter(BaseAdapter):
         # Load configuration
         redis_url = os.getenv("RC_REDIS_URL", "redis://localhost:6379/0")
         self.queue_name = os.getenv("RC_WORKITEM_QUEUE_NAME", "default")
-        self.output_queue_name = f"{self.queue_name}_output"
+        self.output_queue_name = os.getenv(
+            "RC_WORKITEM_OUTPUT_QUEUE_NAME", f"{self.queue_name}_output"
+        )
         self.files_dir = Path(
             os.getenv("RC_WORKITEM_FILES_DIR", "devdata/work_item_files")
         )

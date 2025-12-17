@@ -129,6 +129,7 @@ See [Yorko Control Room Adapter Guide](docs/YORKO_CONTROL_ROOM_ADAPTER.md) for d
 ## Project Conventions
 - All configuration is via environment variables (see `scripts/config.py`).
 - Queue names are set by `RC_WORKITEM_QUEUE_NAME`.
+- Output queue names can be customized via `RC_WORKITEM_OUTPUT_QUEUE_NAME` (optional, defaults to `{queue_name}_output`).
 - File attachments:
   - SQLite/Redis: Large files stored on disk, small files inline
   - DocumentDB: Large files stored in GridFS (>1MB), small files inline (base64)
@@ -154,6 +155,43 @@ See [Yorko Control Room Adapter Guide](docs/YORKO_CONTROL_ROOM_ADAPTER.md) for d
 - **Large File Handling**: Built-in GridFS for efficient large file storage (>1MB)
 - **Enterprise Features**: TLS/SSL encryption, connection pooling, and automatic failover
 - **MongoDB Compatibility**: Drop-in replacement for existing MongoDB-based workflows
+
+## Output Queue Configuration
+
+By default, adapters automatically append `_output` to the input queue name when creating output work items. For example:
+- Input queue: `qa_forms` → Output queue: `qa_forms_output`
+
+In multi-stage workflows, this can lead to confusing cascading names:
+- Producer: `qa_forms` → `qa_forms_output`
+- Consumer: `qa_forms_output` → `qa_forms_output_output` (confusing!)
+- Reporter: `qa_forms_output_output` → `qa_forms_output_output_output` (even worse!)
+
+### Solution: Custom Output Queue Names
+
+Use the `RC_WORKITEM_OUTPUT_QUEUE_NAME` environment variable to explicitly set the output queue name:
+
+**Example: Clean multi-stage workflow**
+```json
+// Producer
+{
+  "RC_WORKITEM_QUEUE_NAME": "qa_forms",
+  // Output defaults to "qa_forms_output"
+}
+
+// Consumer
+{
+  "RC_WORKITEM_QUEUE_NAME": "qa_forms_output",
+  "RC_WORKITEM_OUTPUT_QUEUE_NAME": "qa_forms_processed"  // Explicit name!
+}
+
+// Reporter
+{
+  "RC_WORKITEM_QUEUE_NAME": "qa_forms_processed"
+  // No output needed for final stage
+}
+```
+
+This prevents confusing cascading names and makes database management much clearer. The feature is **backward compatible**—if you don't set `RC_WORKITEM_OUTPUT_QUEUE_NAME`, the adapter will use the default `{queue_name}_output` behavior.
 
 ## References & Documentation
 - Adapter implementation: `docs/CUSTOM_WORKITEM_ADAPTER_GUIDE.md`
