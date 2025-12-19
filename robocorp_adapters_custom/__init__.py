@@ -17,7 +17,7 @@ Usage:
     - robocorp_adapters_custom._yorko_control_room.YorkoControlRoomAdapter
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.4"
 
 __all__ = [
     "exceptions",
@@ -30,7 +30,7 @@ __all__ = [
 
 import sys
 
-__version__ = "1.0.0"
+__version__ = "0.1.4"
 
 # Inject our local utilities into robocorp.workitems modules to enable drop-in compatibility
 # This allows adapters to work seamlessly with the existing robocorp.workitems package
