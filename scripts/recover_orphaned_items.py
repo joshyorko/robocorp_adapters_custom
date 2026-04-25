@@ -18,7 +18,7 @@ def main():
     queue_name = os.getenv("RC_WORKITEM_QUEUE_NAME", "qa_forms_output")
 
     print(f"\n{'='*80}")
-    print(f"Recovering Orphaned Work Items")
+    print("Recovering Orphaned Work Items")
     print(f"{'='*80}")
     print(f"Database: {db_path}")
     print(f"Queue: {queue_name}")

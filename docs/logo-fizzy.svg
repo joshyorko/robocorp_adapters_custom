@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">robocorp_adapters_custom with Fizzy/Codex orchestration</title>
+  <desc id="desc">Project banner showing a Robocorp-style adapter robot, work item queue, Fizzy board cards, and Codex execution path.</desc>
+  <defs>
+    <linearGradient id="robot-blue" x1="0" y1="55" x2="260" y2="335" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#33A7FF"/>
+      <stop offset="1" stop-color="#0F63D8"/>
+    </linearGradient>
+    <linearGradient id="queue-green" x1="360" y1="118" x2="742" y2="302" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#20D6A1"/>
+      <stop offset="1" stop-color="#8DD948"/>
+    </linearGradient>
+    <linearGradient id="panel-coral" x1="800" y1="100" x2="1080" y2="318" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFB14A"/>
+      <stop offset="1" stop-color="#FF6B6B"/>
+    </linearGradient>
+    <filter id="soft-shadow" x="-12%" y="-18%" width="124%" height="136%">
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#0B1826" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="420" rx="34" fill="#F7FAFC"/>
+  <rect x="28" y="28" width="1144" height="364" rx="28" fill="#FFFFFF" stroke="#D8E3EC" stroke-width="2"/>
+
+  <g filter="url(#soft-shadow)">
+    <rect x="74" y="90" width="232" height="232" rx="46" fill="#ECF6FF"/>
+    <path d="M190 111 L284 165 L284 273 L190 327 L96 273 L96 165 Z" fill="url(#robot-blue)"/>
+    <rect x="129" y="194" width="48" height="48" rx="24" fill="#FFFFFF"/>
+    <rect x="203" y="194" width="48" height="48" rx="24" fill="#FFFFFF"/>
+    <path d="M151 270 C175 287 205 287 229 270" fill="none" stroke="#083B7A" stroke-width="10" stroke-linecap="round"/>
+    <line x1="190" y1="111" x2="190" y2="76" stroke="#0F63D8" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="190" cy="66" r="20" fill="#1686EA"/>
+  </g>
+
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M319 209 H380" stroke="#A7B8C8" stroke-width="12"/>
+    <path d="M760 209 H820" stroke="#A7B8C8" stroke-width="12"/>
+    <path d="M380 209 L362 191 M380 209 L362 227" stroke="#A7B8C8" stroke-width="8"/>
+    <path d="M820 209 L802 191 M820 209 L802 227" stroke="#A7B8C8" stroke-width="8"/>
+  </g>
+
+  <g filter="url(#soft-shadow)">
+    <rect x="380" y="112" width="380" height="194" rx="34" fill="#0B1826"/>
+    <path d="M425 158 H611 C638 158 660 180 660 207 C660 234 638 256 611 256 H425 Z" fill="url(#queue-green)"/>
+    <circle cx="467" cy="207" r="24" fill="#FFFFFF"/>
+    <circle cx="543" cy="207" r="24" fill="#FFFFFF"/>
+    <circle cx="619" cy="207" r="24" fill="#FFFFFF"/>
+    <path d="M674 166 H714 M674 207 H714 M674 248 H714" stroke="#EAF2F8" stroke-width="14" stroke-linecap="round"/>
+    <text x="424" y="292" fill="#9FECC9" font-family="Noto Sans, Inter, Arial, sans-serif" font-size="21" font-weight="800">work items</text>
+    <text x="603" y="292" fill="#EAF2F8" font-family="Noto Sans, Inter, Arial, sans-serif" font-size="21" font-weight="700">queue</text>
+  </g>
+
+  <g filter="url(#soft-shadow)">
+    <rect x="828" y="93" width="272" height="230" rx="34" fill="#FFF5E8"/>
+    <rect x="860" y="126" width="208" height="46" rx="14" fill="#0B1826"/>
+    <text x="884" y="157" fill="#FFFFFF" font-family="Noto Sans, Inter, Arial, sans-serif" font-size="22" font-weight="900">Fizzy</text>
+    <circle cx="1024" cy="149" r="9" fill="#20D6A1"/>
+    <circle cx="1049" cy="149" r="9" fill="#FFB14A"/>
+    <rect x="860" y="191" width="86" height="86" rx="18" fill="url(#panel-coral)"/>
+    <rect x="966" y="191" width="86" height="86" rx="18" fill="#EAF2F8"/>
+    <path d="M884 224 H923 M884 248 H912" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+    <path d="M989 221 H1029 M989 247 H1018" stroke="#466276" stroke-width="10" stroke-linecap="round"/>
+    <path d="M884 302 H1028" stroke="#FF9D52" stroke-width="12" stroke-linecap="round"/>
+  </g>
+
+  <g>
+    <text x="75" y="366" fill="#0B1826" font-family="Noto Sans, Inter, Arial, sans-serif" font-size="40" font-weight="900">robocorp_adapters_custom</text>
+    <text x="76" y="397" fill="#466276" font-family="Noto Sans, Inter, Arial, sans-serif" font-size="22" font-weight="700">Robocorp work item adapters + Fizzy/Codex orchestration</text>
+  </g>
+</svg>

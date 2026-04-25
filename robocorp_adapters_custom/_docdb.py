@@ -27,20 +27,21 @@ import hashlib
 import logging
 import os
 import uuid
-from urllib.parse import quote_plus
 from collections.abc import Iterator, MutableMapping
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import quote_plus
 
-from robocorp.workitems._exceptions import ApplicationException, EmptyQueue
 from robocorp.workitems._adapters._base import BaseAdapter
+from robocorp.workitems._exceptions import ApplicationException, EmptyQueue
+
+from ._support import with_retry
 
 # Import from local modules for drop-in replacement functionality
 from ._types import State
 from ._utils import JSONType, required_env
-from ._support import with_retry
 
 LOGGER = logging.getLogger(__name__)
 
@@ -165,7 +166,9 @@ class DocumentDBAdapter(BaseAdapter):
             password = os.getenv("DOCDB_PASSWORD")
 
             if host and username and password:
-                self.docdb_uri = f"mongodb://{quote_plus(username)}:{quote_plus(password)}@{host}:{port}"
+                self.docdb_uri = (
+                    f"mongodb://{quote_plus(username)}:{quote_plus(password)}@{host}:{port}"
+                )
             elif host:
                 self.docdb_uri = f"mongodb://{host}:{port}"
             else:
@@ -177,12 +180,8 @@ class DocumentDBAdapter(BaseAdapter):
         self.output_queue_name = os.getenv(
             "RC_WORKITEM_OUTPUT_QUEUE_NAME", f"{self.queue_name}_output"
         )
-        self.files_dir = Path(
-            os.getenv("RC_WORKITEM_FILES_DIR", "devdata/work_item_files")
-        )
-        self.orphan_timeout_minutes = int(
-            os.getenv("RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES", "30")
-        )
+        self.files_dir = Path(os.getenv("RC_WORKITEM_FILES_DIR", "devdata/work_item_files"))
+        self.orphan_timeout_minutes = int(os.getenv("RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES", "30"))
         self.file_threshold = int(
             os.getenv("RC_WORKITEM_FILE_SIZE_THRESHOLD", str(GRIDFS_THRESHOLD))
         )
@@ -212,7 +211,7 @@ class DocumentDBAdapter(BaseAdapter):
             )
         except Exception as e:
             LOGGER.critical("Failed to connect to DocumentDB: %s", e)
-            raise ApplicationException(f"DocumentDB connection failed: {e}")
+            raise ApplicationException(f"DocumentDB connection failed: {e}") from e
 
     def _init_collections(self):
         """Initialize collections and indexes."""
@@ -250,9 +249,7 @@ class DocumentDBAdapter(BaseAdapter):
     def _make_file_key(name: str) -> str:
         return hashlib.sha1(name.encode("utf-8")).hexdigest()
 
-    def _get_file_entry(
-        self, doc: dict[str, Any], name: str
-    ) -> tuple[str, dict[str, Any]]:
+    def _get_file_entry(self, doc: dict[str, Any], name: str) -> tuple[str, dict[str, Any]]:
         files_dict = doc.get("files", {}) or {}
 
         if isinstance(files_dict, _FilesView):
@@ -285,9 +282,7 @@ class DocumentDBAdapter(BaseAdapter):
             return self.queue_name
 
         # Check output queue
-        if self._collection(queue=self.output_queue_name).find_one(
-            {"item_id": item_id}
-        ):
+        if self._collection(queue=self.output_queue_name).find_one({"item_id": item_id}):
             return self.output_queue_name
 
         raise ValueError(f"Work item not found: {item_id}")
@@ -333,16 +328,14 @@ class DocumentDBAdapter(BaseAdapter):
 
         except ConnectionFailure as e:
             LOGGER.error("MongoDB connection error: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}") from e
 
     @with_retry(
         max_attempts=3,
         backoff_factor=0.1,
         exceptions=(ConnectionFailure, DatabaseTemporarilyUnavailable),
     )
-    def release_input(
-        self, item_id: str, state: State, exception: Optional[dict] = None
-    ) -> None:
+    def release_input(self, item_id: str, state: State, exception: Optional[dict] = None) -> None:
         """Release work item with terminal state.
 
         Args:
@@ -379,16 +372,14 @@ class DocumentDBAdapter(BaseAdapter):
 
         except ConnectionFailure as e:
             LOGGER.error("MongoDB connection error: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}") from e
 
     @with_retry(
         max_attempts=3,
         backoff_factor=0.1,
         exceptions=(ConnectionFailure, DatabaseTemporarilyUnavailable),
     )
-    def create_output(
-        self, parent_id: Optional[str], payload: Optional[JSONType] = None
-    ) -> str:
+    def create_output(self, parent_id: Optional[str], payload: Optional[JSONType] = None) -> str:
         """Create new output work item.
 
         Args:
@@ -425,7 +416,7 @@ class DocumentDBAdapter(BaseAdapter):
 
         except ConnectionFailure as e:
             LOGGER.error("MongoDB connection error: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}") from e
 
     def seed_input(self, payload: Optional[JSONType] = None) -> str:
         """Create work item directly in input queue (for testing)."""
@@ -450,7 +441,7 @@ class DocumentDBAdapter(BaseAdapter):
 
         except ConnectionFailure as e:
             LOGGER.error("MongoDB connection error: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}") from e
 
     @with_retry(
         max_attempts=3,
@@ -483,7 +474,7 @@ class DocumentDBAdapter(BaseAdapter):
 
         except ConnectionFailure as e:
             LOGGER.error("MongoDB connection error: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}") from e
 
     @with_retry(
         max_attempts=3,
@@ -505,16 +496,14 @@ class DocumentDBAdapter(BaseAdapter):
         try:
             queue_name = self._resolve_item_queue(item_id)
             coll = self._collection(queue=queue_name)
-            result = coll.update_one(
-                {"item_id": item_id}, {"$set": {"payload": payload}}
-            )
+            result = coll.update_one({"item_id": item_id}, {"$set": {"payload": payload}})
 
             if result.matched_count == 0:
                 raise ValueError(f"Work item not found: {item_id}")
 
         except ConnectionFailure as e:
             LOGGER.error("MongoDB connection error: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}") from e
 
     @with_retry(
         max_attempts=3,
@@ -561,7 +550,7 @@ class DocumentDBAdapter(BaseAdapter):
 
         except ConnectionFailure as e:
             LOGGER.error("MongoDB connection error: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}") from e
 
     @with_retry(
         max_attempts=3,
@@ -596,9 +585,7 @@ class DocumentDBAdapter(BaseAdapter):
             try:
                 _, file_entry = self._get_file_entry(doc, name)
             except FileNotFoundError as exc:
-                raise FileNotFoundError(
-                    f"File not found: {name} (work item: {item_id})"
-                ) from exc
+                raise FileNotFoundError(f"File not found: {name} (work item: {item_id})") from exc
 
             storage = file_entry.get("storage")
             if storage == "gridfs":
@@ -622,7 +609,7 @@ class DocumentDBAdapter(BaseAdapter):
 
         except ConnectionFailure as e:
             LOGGER.error("MongoDB connection error: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}") from e
 
     @with_retry(
         max_attempts=3,
@@ -642,9 +629,7 @@ class DocumentDBAdapter(BaseAdapter):
         Raises:
             FileExistsError: File already exists
         """
-        LOGGER.debug(
-            "Adding file '%s' to work item %s (%d bytes)", name, item_id, len(content)
-        )
+        LOGGER.debug("Adding file '%s' to work item %s (%d bytes)", name, item_id, len(content))
 
         try:
             queue_name = self._resolve_item_queue(item_id)
@@ -664,9 +649,7 @@ class DocumentDBAdapter(BaseAdapter):
                     files_dict = {}
 
                 if any(
-                    (entry.get("name") == name)
-                    if isinstance(entry, dict)
-                    else key == name
+                    (entry.get("name") == name) if isinstance(entry, dict) else key == name
                     for key, entry in files_dict.items()
                 ):
                     raise FileExistsError(f"File already exists: {name}")
@@ -693,7 +676,7 @@ class DocumentDBAdapter(BaseAdapter):
 
         except ConnectionFailure as e:
             LOGGER.error("MongoDB connection error: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}") from e
 
     @with_retry(
         max_attempts=3,
@@ -725,9 +708,7 @@ class DocumentDBAdapter(BaseAdapter):
             try:
                 file_key, file_entry = self._get_file_entry(doc, name)
             except FileNotFoundError as exc:
-                raise FileNotFoundError(
-                    f"File not found: {name} (work item: {item_id})"
-                ) from exc
+                raise FileNotFoundError(f"File not found: {name} (work item: {item_id})") from exc
 
             storage = file_entry.get("storage")
             if storage is None and "gridfs_id" in file_entry:
@@ -740,7 +721,7 @@ class DocumentDBAdapter(BaseAdapter):
 
         except ConnectionFailure as e:
             LOGGER.error("MongoDB connection error: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}") from e
 
     def recover_orphaned_work_items(self) -> list[str]:
         """Recover orphaned work items beyond timeout.
@@ -769,15 +750,13 @@ class DocumentDBAdapter(BaseAdapter):
             )
 
             if result.modified_count > 0:
-                LOGGER.warning(
-                    "Recovered %d orphaned work items", result.modified_count
-                )
+                LOGGER.warning("Recovered %d orphaned work items", result.modified_count)
 
             return []  # DocumentDB doesn't easily return affected IDs
 
         except ConnectionFailure as e:
             LOGGER.error("MongoDB connection error: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Connection failed: {e}") from e
 
     @property
     def _config(self) -> "_Config":
@@ -828,9 +807,7 @@ class _FilesView(MutableMapping[str, Any]):
             return entry.get("content")
         return entry
 
-    def __setitem__(
-        self, key: str, value: Any
-    ) -> None:  # pragma: no cover - read-only view
+    def __setitem__(self, key: str, value: Any) -> None:  # pragma: no cover - read-only view
         raise TypeError("Files view is read-only")
 
     def __delitem__(self, key: str) -> None:  # pragma: no cover - read-only view

@@ -14,7 +14,7 @@ import os
 import random
 import threading
 import time
-from typing import Callable, Any, TypeVar
+from typing import Any, Callable, TypeVar
 
 LOGGER = logging.getLogger(__name__)
 
@@ -26,16 +26,16 @@ JSONType = dict[str, Any] | list | str | int | float | bool | None
 
 def required_env(key: str) -> str:
     """Get required environment variable.
-    
+
     Args:
         key: Environment variable name
-        
+
     Returns:
         Environment variable value
-        
+
     Raises:
         KeyError: If environment variable is not set
-        
+
     Example:
         db_path = required_env("RC_WORKITEM_DB_PATH")
     """
@@ -77,9 +77,7 @@ class ThreadLocalConnectionPool:
         """
         if not hasattr(self._local, "connection"):
             self._local.connection = self._connection_factory()
-            LOGGER.debug(
-                "Created new connection for thread %s", threading.current_thread().name
-            )
+            LOGGER.debug("Created new connection for thread %s", threading.current_thread().name)
         return self._local.connection
 
     def close_all(self):
@@ -87,9 +85,7 @@ class ThreadLocalConnectionPool:
         if hasattr(self._local, "connection"):
             try:
                 self._local.connection.close()
-                LOGGER.debug(
-                    "Closed connection for thread %s", threading.current_thread().name
-                )
+                LOGGER.debug("Closed connection for thread %s", threading.current_thread().name)
             except Exception as e:
                 LOGGER.warning("Error closing connection: %s", e)
             finally:
@@ -250,9 +246,7 @@ def run_migrations(
         LOGGER.info("Schema is up to date (version %d)", current_version)
         return
 
-    LOGGER.info(
-        "Running migrations from version %d to %d", current_version, target_version
-    )
+    LOGGER.info("Running migrations from version %d to %d", current_version, target_version)
 
     for version in range(current_version + 1, target_version + 1):
         if version not in migration_functions:

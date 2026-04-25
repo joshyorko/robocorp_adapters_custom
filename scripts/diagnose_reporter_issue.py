@@ -16,18 +16,16 @@ conn = sqlite3.connect(db_path)
 conn.row_factory = sqlite3.Row
 
 print(f"\n{'='*80}")
-print(f"Reporter Issue Diagnosis")
+print("Reporter Issue Diagnosis")
 print(f"{'='*80}\n")
 
 # Get all work items in the Consumer's output queue
-cursor = conn.execute(
-    """
+cursor = conn.execute("""
     SELECT id, queue_name, state, payload
     FROM work_items
     WHERE queue_name LIKE '%output%'
     ORDER BY created_at DESC
-"""
-)
+""")
 
 print("Work Items in Output Queues:")
 print("-" * 80)
@@ -46,15 +44,15 @@ for row in cursor:
     # Check format
     if payload.get("TYPE") == "Reporter":
         reporter_items += 1
-        print(f"  Format: Reporter metadata item")
+        print("  Format: Reporter metadata item")
     elif payload.get("callid") and payload.get("evaluationTemplateId"):
         producer_format_count += 1
-        print(f"  Format: Producer format (callid + evaluationTemplateId)")
+        print("  Format: Producer format (callid + evaluationTemplateId)")
     elif payload.get("contact_id"):
         consumer_format_count += 1
-        print(f"  Format: Consumer format (contact_id)")
+        print("  Format: Consumer format (contact_id)")
     else:
-        print(f"  Format: Unknown")
+        print("  Format: Unknown")
 
 print(f"\n{'='*80}")
 print("Summary:")

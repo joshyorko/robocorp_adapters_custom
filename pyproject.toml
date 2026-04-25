@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "robocorp-adapters-custom"
-version = "0.1.4"
+version = "0.1.5"
 description = "Custom Work Item Adapters for Robocorp Producer-Consumer Automation"
 authors = [{name = "Josh Yorko"}]
 readme = "README.md"
@@ -72,6 +72,8 @@ extend-exclude = '''
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.ruff.lint]
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
@@ -85,7 +87,7 @@ ignore = [
     "B008", # do not perform function calls in argument defaults
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 
 [tool.pytest.ini_options]
@@ -94,3 +96,8 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --cov=robocorp_adapters_custom --cov-report=term-missing"
+markers = [
+    "redis: tests requiring a reachable Redis service",
+    "docdb: tests requiring a reachable MongoDB/DocumentDB service",
+    "integration: tests requiring external service dependencies",
+]

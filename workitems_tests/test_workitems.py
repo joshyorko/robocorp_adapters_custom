@@ -5,7 +5,6 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
-
 from robocorp.workitems import version_info
 from robocorp.workitems._exceptions import BusinessException
 from robocorp.workitems._types import ExceptionType, State

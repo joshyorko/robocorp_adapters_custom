@@ -33,13 +33,14 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-from robocorp.workitems._exceptions import ApplicationException, EmptyQueue
 from robocorp.workitems._adapters._base import BaseAdapter
+from robocorp.workitems._exceptions import ApplicationException, EmptyQueue
+
+from ._support import with_retry
 
 # Import from local modules for drop-in replacement functionality
 from ._types import TTL_WEEK_SECONDS, State
 from ._utils import JSONType
-from ._support import with_retry
 
 LOGGER = logging.getLogger(__name__)
 
@@ -127,12 +128,8 @@ class RedisAdapter(BaseAdapter):
         self.output_queue_name = os.getenv(
             "RC_WORKITEM_OUTPUT_QUEUE_NAME", f"{self.queue_name}_output"
         )
-        self.files_dir = Path(
-            os.getenv("RC_WORKITEM_FILES_DIR", "devdata/work_item_files")
-        )
-        self.orphan_timeout_minutes = int(
-            os.getenv("RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES", "30")
-        )
+        self.files_dir = Path(os.getenv("RC_WORKITEM_FILES_DIR", "devdata/work_item_files"))
+        self.orphan_timeout_minutes = int(os.getenv("RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES", "30"))
 
         # Create files directory
         self.files_dir.mkdir(parents=True, exist_ok=True)
@@ -157,7 +154,7 @@ class RedisAdapter(BaseAdapter):
             )
         except Exception as e:
             LOGGER.critical("Failed to connect to Redis: %s", e)
-            raise ApplicationException(f"Redis connection failed: {e}")
+            raise ApplicationException(f"Redis connection failed: {e}") from e
 
         # Cache for resolved queues to avoid redundant lookups
         self._queue_cache: dict[str, str] = {}
@@ -207,9 +204,7 @@ class RedisAdapter(BaseAdapter):
             # Check origin tracking
             origin = self._client.get(f"origin:{item_id}")
             if origin:
-                queue_name = (
-                    origin.decode("utf-8") if isinstance(origin, bytes) else origin
-                )
+                queue_name = origin.decode("utf-8") if isinstance(origin, bytes) else origin
                 if self._client.hexists(
                     self._key("payload", queue=queue_name, item_id=item_id), "payload"
                 ):
@@ -263,15 +258,11 @@ class RedisAdapter(BaseAdapter):
                 raise EmptyQueue(f"No work items in queue: {self.queue_name}")
 
             # Decode bytes to string
-            item_id_str = (
-                item_id.decode("utf-8") if isinstance(item_id, bytes) else item_id
-            )
+            item_id_str = item_id.decode("utf-8") if isinstance(item_id, bytes) else item_id
 
             # Update timestamps
             now = datetime.utcnow().isoformat()
-            self._client.hset(
-                self._key("timestamps", item_id=item_id_str), "reserved_at", now
-            )
+            self._client.hset(self._key("timestamps", item_id=item_id_str), "reserved_at", now)
 
             # Update state in payload metadata
             self._client.hset(
@@ -285,16 +276,14 @@ class RedisAdapter(BaseAdapter):
 
         except RedisConnectionError as e:
             LOGGER.error("Redis connection error during reserve: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}") from e
 
     @with_retry(
         max_attempts=3,
         backoff_factor=0.1,
         exceptions=(RedisConnectionError, DatabaseTemporarilyUnavailable),
     )
-    def release_input(
-        self, item_id: str, state: State, exception: Optional[dict] = None
-    ) -> None:
+    def release_input(self, item_id: str, state: State, exception: Optional[dict] = None) -> None:
         """Release work item with terminal state.
 
         Moves from processing list to done/failed set and records exception if failed.
@@ -344,9 +333,7 @@ class RedisAdapter(BaseAdapter):
 
             # Update timestamps
             now = datetime.utcnow().isoformat()
-            self._client.hset(
-                self._key("timestamps", item_id=item_id), "released_at", now
-            )
+            self._client.hset(self._key("timestamps", item_id=item_id), "released_at", now)
 
             # Store terminal state
             self._client.set(self._key("state", item_id=item_id), state.value)
@@ -366,16 +353,14 @@ class RedisAdapter(BaseAdapter):
 
         except RedisConnectionError as e:
             LOGGER.error("Redis connection error during release: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}") from e
 
     @with_retry(
         max_attempts=3,
         backoff_factor=0.1,
         exceptions=(RedisConnectionError, DatabaseTemporarilyUnavailable),
     )
-    def create_output(
-        self, parent_id: Optional[str], payload: Optional[JSONType] = None
-    ) -> str:
+    def create_output(self, parent_id: Optional[str], payload: Optional[JSONType] = None) -> str:
         """Create new output work item.
 
         Creates a work item in PENDING state in the output queue.
@@ -447,7 +432,7 @@ class RedisAdapter(BaseAdapter):
 
         except RedisConnectionError as e:
             LOGGER.error("Redis connection error during create: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}") from e
 
     def seed_input(self, payload: Optional[JSONType] = None) -> str:
         """Create work item directly in input queue (for testing).
@@ -473,12 +458,8 @@ class RedisAdapter(BaseAdapter):
             self._client.expire(self._key("payload", item_id=item_id), TTL_WEEK_SECONDS)
 
             now = datetime.utcnow().isoformat()
-            self._client.hset(
-                self._key("timestamps", item_id=item_id), mapping={"created_at": now}
-            )
-            self._client.expire(
-                self._key("timestamps", item_id=item_id), TTL_WEEK_SECONDS
-            )
+            self._client.hset(self._key("timestamps", item_id=item_id), mapping={"created_at": now})
+            self._client.expire(self._key("timestamps", item_id=item_id), TTL_WEEK_SECONDS)
 
             self._client.lpush(self._key("pending"), item_id)
             self._client.set(f"origin:{item_id}", self.queue_name, ex=TTL_WEEK_SECONDS)
@@ -488,7 +469,7 @@ class RedisAdapter(BaseAdapter):
 
         except RedisConnectionError as e:
             LOGGER.error("Redis connection error during seed_input: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}") from e
 
     @with_retry(
         max_attempts=3,
@@ -521,18 +502,16 @@ class RedisAdapter(BaseAdapter):
 
             # Decode and parse JSON
             payload_str = (
-                payload_json.decode("utf-8")
-                if isinstance(payload_json, bytes)
-                else payload_json
+                payload_json.decode("utf-8") if isinstance(payload_json, bytes) else payload_json
             )
             return json.loads(payload_str)
 
         except RedisConnectionError as e:
             LOGGER.error("Redis connection error during load_payload: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}") from e
         except json.JSONDecodeError as e:
             LOGGER.error("Invalid JSON payload for work item %s: %s", item_id, e)
-            raise ValueError(f"Invalid JSON payload: {e}")
+            raise ValueError(f"Invalid JSON payload: {e}") from e
 
     @with_retry(
         max_attempts=3,
@@ -554,9 +533,7 @@ class RedisAdapter(BaseAdapter):
 
         try:
             queue_name = self._resolve_item_queue(item_id)
-            exists = self._client.exists(
-                self._key("payload", queue=queue_name, item_id=item_id)
-            )
+            exists = self._client.exists(self._key("payload", queue=queue_name, item_id=item_id))
             if not exists:
                 raise ValueError(f"Work item not found: {item_id}")
 
@@ -569,10 +546,10 @@ class RedisAdapter(BaseAdapter):
 
         except RedisConnectionError as e:
             LOGGER.error("Redis connection error during save_payload: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}") from e
         except (TypeError, ValueError) as e:
             LOGGER.error("Invalid payload for work item %s: %s", item_id, e)
-            raise ValueError(f"Payload not JSON-serializable: {e}")
+            raise ValueError(f"Payload not JSON-serializable: {e}") from e
 
     @with_retry(
         max_attempts=3,
@@ -595,18 +572,14 @@ class RedisAdapter(BaseAdapter):
 
         try:
             queue_name = self._resolve_item_queue(item_id)
-            files_hash = self._client.hkeys(
-                self._key("files", queue=queue_name, item_id=item_id)
-            )
+            files_hash = self._client.hkeys(self._key("files", queue=queue_name, item_id=item_id))
 
-            filenames = [
-                f.decode("utf-8") if isinstance(f, bytes) else f for f in files_hash
-            ]
+            filenames = [f.decode("utf-8") if isinstance(f, bytes) else f for f in files_hash]
             return filenames
 
         except RedisConnectionError as e:
             LOGGER.error("Redis connection error during list_files: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}") from e
 
     @with_retry(
         max_attempts=3,
@@ -638,14 +611,10 @@ class RedisAdapter(BaseAdapter):
             )
 
             if file_ref is None:
-                raise FileNotFoundError(
-                    f"File not found: {name} (work item: {item_id})"
-                )
+                raise FileNotFoundError(f"File not found: {name} (work item: {item_id})")
 
             # Decode reference
-            file_ref_str = (
-                file_ref.decode("utf-8") if isinstance(file_ref, bytes) else file_ref
-            )
+            file_ref_str = file_ref.decode("utf-8") if isinstance(file_ref, bytes) else file_ref
 
             # Check if filesystem reference
             if file_ref_str.startswith("file://"):
@@ -659,7 +628,7 @@ class RedisAdapter(BaseAdapter):
 
         except RedisConnectionError as e:
             LOGGER.error("Redis connection error during get_file: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}") from e
 
     @with_retry(
         max_attempts=3,
@@ -689,13 +658,9 @@ class RedisAdapter(BaseAdapter):
             raise ValueError(f"Filename too long (max 255 chars): {name}")
 
         if len(content) > MAX_FILE_SIZE:
-            raise ValueError(
-                f"File too large (max {MAX_FILE_SIZE} bytes): {len(content)} bytes"
-            )
+            raise ValueError(f"File too large (max {MAX_FILE_SIZE} bytes): {len(content)} bytes")
 
-        LOGGER.debug(
-            "Adding file '%s' to work item %s (%d bytes)", name, item_id, len(content)
-        )
+        LOGGER.debug("Adding file '%s' to work item %s (%d bytes)", name, item_id, len(content))
 
         try:
             # Resolve queue first to avoid redundant lookups
@@ -735,7 +700,7 @@ class RedisAdapter(BaseAdapter):
 
         except RedisConnectionError as e:
             LOGGER.error("Redis connection error during add_file: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}") from e
 
     @with_retry(
         max_attempts=3,
@@ -764,14 +729,10 @@ class RedisAdapter(BaseAdapter):
             )
 
             if file_ref is None:
-                raise FileNotFoundError(
-                    f"File not found: {name} (work item: {item_id})"
-                )
+                raise FileNotFoundError(f"File not found: {name} (work item: {item_id})")
 
             # Decode reference
-            file_ref_str = (
-                file_ref.decode("utf-8") if isinstance(file_ref, bytes) else file_ref
-            )
+            file_ref_str = file_ref.decode("utf-8") if isinstance(file_ref, bytes) else file_ref
 
             # Delete from filesystem if large file
             if file_ref_str.startswith("file://"):
@@ -780,13 +741,11 @@ class RedisAdapter(BaseAdapter):
                     filepath.unlink()
 
             # Remove from Redis hash
-            self._client.hdel(
-                self._key("files", queue=queue_name, item_id=item_id), name
-            )
+            self._client.hdel(self._key("files", queue=queue_name, item_id=item_id), name)
 
         except RedisConnectionError as e:
             LOGGER.error("Redis connection error during remove_file: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}") from e
 
     def recover_orphaned_work_items(self) -> list[str]:
         """Recover orphaned work items beyond timeout.
@@ -833,9 +792,7 @@ class RedisAdapter(BaseAdapter):
                         self._client.lpush(self._key("pending"), item_id)
 
                         # Clear reserved_at timestamp
-                        self._client.hdel(
-                            self._key("timestamps", item_id=item_id), "reserved_at"
-                        )
+                        self._client.hdel(self._key("timestamps", item_id=item_id), "reserved_at")
 
                         # Update state
                         self._client.hset(
@@ -854,7 +811,7 @@ class RedisAdapter(BaseAdapter):
 
         except RedisConnectionError as e:
             LOGGER.error("Redis connection error during recovery: %s", e)
-            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}")
+            raise DatabaseTemporarilyUnavailable(f"Redis connection failed: {e}") from e
 
     @property
     def _config(self) -> "_Config":

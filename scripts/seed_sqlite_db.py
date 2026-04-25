@@ -61,7 +61,7 @@ def seed_producer_workitem():
     print(f"  Payload: {json.dumps(payload, indent=2)}")
     print(f"\nDatabase: {os.environ['RC_WORKITEM_DB_PATH']}")
     print(f"Queue: {os.environ['RC_WORKITEM_QUEUE_NAME']}")
-    print(f"\nNow run: rcc run -t Producer -e devdata/env-sqlite-producer.json")
+    print("\nNow run: rcc run -t Producer -e devdata/env-sqlite-producer.json")
 
 
 if __name__ == "__main__":
