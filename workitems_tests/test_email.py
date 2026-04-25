@@ -170,9 +170,7 @@ def test_email_valid(inputs):
 
     email = inputs.current.email()
     assert email.from_.name == "Mark the Monkey"
-    assert (
-        email.to[0].address == "process.marks.moon_mission.a1234@mail.ci.robocloud.dev"
-    )
+    assert email.to[0].address == "process.marks.moon_mission.a1234@mail.ci.robocloud.dev"
     assert email.date == datetime(2022, 2, 22, 6, 0, tzinfo=timezone.utc)
     assert email.text == "Some text goes here"
     assert email.html is None
@@ -199,9 +197,7 @@ def test_email_failed_parses(inputs):
 
     email = inputs.current.email(ignore_errors=True)
     assert email.from_.name == "Mark the Monkey"
-    assert (
-        email.to[0].address == "process.marks.moon_mission.a1234@mail.ci.robocloud.dev"
-    )
+    assert email.to[0].address == "process.marks.moon_mission.a1234@mail.ci.robocloud.dev"
     assert email.date == datetime(2022, 2, 22, 6, 0, tzinfo=timezone.utc)
     assert email.text is None
     assert email.html is None

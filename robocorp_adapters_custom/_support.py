@@ -32,9 +32,7 @@ class ThreadLocalConnectionPool(Generic[T]):
             conn.execute("SELECT * FROM items")
     """
 
-    def __init__(
-        self, factory: Callable[[], T], cleanup: Optional[Callable[[T], None]] = None
-    ):
+    def __init__(self, factory: Callable[[], T], cleanup: Optional[Callable[[T], None]] = None):
         """Initialize the connection pool.
 
         Args:
@@ -80,9 +78,7 @@ class ThreadLocalConnectionPool(Generic[T]):
                 except Exception as e:
                     LOGGER.warning("Error cleaning up connection: %s", e)
             delattr(self._local, "connection")
-            LOGGER.debug(
-                "Closed connection for thread %s", threading.current_thread().name
-            )
+            LOGGER.debug("Closed connection for thread %s", threading.current_thread().name)
 
 
 def with_retry(
@@ -166,9 +162,7 @@ def get_schema_version(conn: Any, adapter_type: str) -> int:
         else:
             raise ValueError(f"Unknown adapter type: {adapter_type}")
     except Exception as e:
-        raise ApplicationException(
-            f"Failed to get schema version for {adapter_type}: {e}"
-        )
+        raise ApplicationException(f"Failed to get schema version for {adapter_type}: {e}") from e
 
 
 def apply_migration(
@@ -219,7 +213,7 @@ def apply_migration(
         LOGGER.info("Migration to version %d completed successfully", to_version)
     except Exception as e:
         LOGGER.error("Migration failed: %s", e)
-        raise ApplicationException(f"Migration to version {to_version} failed: {e}")
+        raise ApplicationException(f"Migration to version {to_version} failed: {e}") from e
 
 
 def ensure_schema_version(

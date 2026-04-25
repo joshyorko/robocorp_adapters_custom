@@ -71,9 +71,7 @@ def load_adapter_class(adapter_class_path: str) -> type[BaseAdapter]:
 
         # Verify it's a BaseAdapter subclass
         if not issubclass(adapter_class, BaseAdapter):
-            raise ValueError(
-                f"Class {adapter_class_path} must inherit from BaseAdapter"
-            )
+            raise ValueError(f"Class {adapter_class_path} must inherit from BaseAdapter")
 
         LOGGER.info("Successfully loaded adapter class: %s", adapter_class_path)
         return adapter_class
@@ -83,7 +81,7 @@ def load_adapter_class(adapter_class_path: str) -> type[BaseAdapter]:
         raise ImportError(
             f"Cannot import adapter class '{adapter_class_path}'. "
             f"Ensure the module exists and class is defined. Error: {e}"
-        )
+        ) from e
 
 
 def initialize_adapter() -> BaseAdapter:
@@ -138,7 +136,7 @@ def initialize_adapter() -> BaseAdapter:
         raise ValueError(
             f"Failed to initialize adapter '{adapter_class_path}'. "
             f"Check environment variables and adapter configuration. Error: {e}"
-        )
+        ) from e
 
 
 def get_adapter_instance(reinitialize: bool = False) -> Optional[BaseAdapter]:

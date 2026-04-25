@@ -136,7 +136,7 @@ class YorkoControlRoomAdapter(BaseAdapter):
         try:
             response.raise_for_status()
             return response
-        except requests.HTTPError as e:
+        except requests.HTTPError:
             LOGGER.error(
                 "HTTP error: status=%s, url=%s, response=%s",
                 response.status_code,
@@ -184,9 +184,7 @@ class YorkoControlRoomAdapter(BaseAdapter):
             LOGGER.error("Failed to reserve work item: %s", e)
             raise
 
-    def release_input(
-        self, item_id: str, state: State, exception: Optional[dict] = None
-    ):
+    def release_input(self, item_id: str, state: State, exception: Optional[dict] = None):
         """Release a work item back to the Control Room with final state.
 
         Args:

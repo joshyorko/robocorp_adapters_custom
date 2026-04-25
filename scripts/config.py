@@ -7,8 +7,8 @@ module focused and portable.
 
 from __future__ import annotations
 
-import os
 import logging
+import os
 from typing import Dict
 
 LOGGER = logging.getLogger(__name__)
@@ -28,9 +28,7 @@ def get_adapter_config() -> Dict[str, object]:
         # Common configuration
         "queue_name": os.getenv("RC_WORKITEM_QUEUE_NAME", "default"),
         "files_dir": os.getenv("RC_WORKITEM_FILES_DIR", "devdata/work_item_files"),
-        "orphan_timeout_minutes": int(
-            os.getenv("RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES", "30")
-        ),
+        "orphan_timeout_minutes": int(os.getenv("RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES", "30")),
         # SQLite configuration
         "db_path": os.getenv("RC_WORKITEM_DB_PATH", ""),
         # Redis configuration
@@ -73,8 +71,7 @@ def validate_adapter_config(adapter_class: str, config: Dict[str, object]) -> No
     elif "redis" in acl:
         if not config.get("redis_host"):
             raise ValueError(
-                "REDIS_HOST environment variable required for Redis adapter. "
-                "Example: localhost"
+                "REDIS_HOST environment variable required for Redis adapter. " "Example: localhost"
             )
 
     elif "postgres" in acl or "postgresql" in acl:

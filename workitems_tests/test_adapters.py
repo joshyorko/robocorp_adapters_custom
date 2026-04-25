@@ -12,7 +12,6 @@ from unittest import mock
 
 import pytest
 from requests import HTTPError as _HTTPError
-
 from robocorp.workitems._adapters import FileAdapter, RobocorpAdapter, create_adapter
 from robocorp.workitems._adapters._docdb import DocumentDBAdapter
 from robocorp.workitems._adapters._redis import RedisAdapter
@@ -21,12 +20,50 @@ from robocorp.workitems._requests import DEBUG, HTTPError
 
 # Import from our local _types module (mapped via sys.modules in __init__.py)
 from robocorp.workitems._types import State
-# TTL_WEEK_SECONDS is defined in our local _types module
-TTL_WEEK_SECONDS = 604800  # 7 * 24 * 60 * 60
 
 from .mocks import MOCK_FILES, PAYLOAD_FIRST, PAYLOAD_SECOND
 
+# TTL_WEEK_SECONDS is defined in our local _types module
+TTL_WEEK_SECONDS = 604800  # 7 * 24 * 60 * 60
+
 ITEMS_JSON = [{"payload": {"a-key": "a-value"}, "files": {"a-file": "file.txt"}}]
+
+
+def _redis_service_available() -> bool:
+    try:
+        import redis  # type: ignore[import-not-found]
+
+        client = redis.from_url(
+            os.getenv("RC_REDIS_URL", "redis://localhost:6379/0"),
+            socket_connect_timeout=0.5,
+            socket_timeout=0.5,
+        )
+        try:
+            return bool(client.ping())
+        finally:
+            client.close()
+    except Exception:
+        return False
+
+
+def _mongo_service_available() -> bool:
+    try:
+        from pymongo import MongoClient  # type: ignore[import-not-found]
+        from pymongo.errors import PyMongoError  # type: ignore[import-not-found]
+
+        client = MongoClient(
+            os.getenv("RC_MONGO_URL", "mongodb://localhost:27017"),
+            serverSelectionTimeoutMS=500,
+        )
+        try:
+            client.admin.command("ping")
+            return True
+        except PyMongoError:
+            return False
+        finally:
+            client.close()
+    except Exception:
+        return False
 
 
 class TestFileAdapter:
@@ -99,9 +136,7 @@ class TestFileAdapter:
         adapter.save_payload(item_id, {"key": "value"})
         with open(adapter._input_path) as fd:
             data = json.load(fd)
-            assert data == [
-                {"payload": {"key": "value"}, "files": {"a-file": "file.txt"}}
-            ]
+            assert data == [{"payload": {"key": "value"}, "files": {"a-file": "file.txt"}}]
 
     def test_save_data_output(self, adapter):
         item_id = adapter.create_output("0", {})
@@ -257,12 +292,8 @@ class TestRobocorpAdapter:
             "state": State.FAILED.value,
         }
         if exception:
-            body["exception"] = {
-                key: value for (key, value) in exception.items() if value
-            }
-        self.mock_post.assert_called_once_with(
-            url, headers=self.HEADERS_PROCESS, json=body
-        )
+            body["exception"] = {key: value for (key, value) in exception.items() if value}
+        self.mock_post.assert_called_once_with(url, headers=self.HEADERS_PROCESS, json=body)
 
     def test_load_payload(self, adapter):
         item_id = "4"
@@ -283,17 +314,13 @@ class TestRobocorpAdapter:
         adapter.save_payload(item_id, payload)
 
         url = f"https://api.workitem.com/json-v1/workspaces/1/workitems/{item_id}/data"
-        self.mock_put.assert_called_once_with(
-            url, headers=self.HEADERS_WORKITEM, json=payload
-        )
+        self.mock_put.assert_called_once_with(url, headers=self.HEADERS_WORKITEM, json=payload)
 
     def test_remove_file(self, adapter):
         item_id = "44"
         name = "procrastination.txt"
         file_id = "88"
-        self.mock_get.return_value.json.return_value = [
-            {"fileName": name, "fileId": file_id}
-        ]
+        self.mock_get.return_value.json.return_value = [{"fileName": name, "fileId": file_id}]
         adapter.remove_file(item_id, name)
 
         url = f"https://api.workitem.com/json-v1/workspaces/1/workitems/{item_id}/files/{file_id}"
@@ -348,9 +375,7 @@ class TestRobocorpAdapter:
             (409, 1),
         ],
     )
-    def test_list_files_retrying(
-        self, adapter, failing_response, status_code, call_count
-    ):
+    def test_list_files_retrying(self, adapter, failing_response, status_code, call_count):
         self.mock_get.return_value = failing_response
         failing_response.status_code = status_code
 
@@ -382,6 +407,7 @@ class TestRobocorpAdapter:
         assert exc_info.value.message == failing_deserializing_response.text
         assert self.mock_get.call_count == 5
 
+    @pytest.mark.skipif(not DEBUG, reason="requires RC_DEBUG")
     def test_logging_and_sleeping(self, adapter, caplog):
         assert DEBUG, 'This test should be ran with "RC_DEBUG" on'
 
@@ -417,7 +443,7 @@ class TestRobocorpAdapter:
             "Client error: 429 'test reason'",
             "Client error: 400 'test reason'",
         ]
-        captured_logs = set(record.message for record in caplog.records)
+        captured_logs = {record.message for record in caplog.records}
         for expected_log in expected_logs:
             assert expected_log in captured_logs
 
@@ -486,9 +512,7 @@ class TestRobocorpAdapter:
         assert content == file_content
 
         # Making sure sensitive info doesn't get exposed.
-        exposed = any(
-            "secret-credentials" in record.message for record in caplog.records
-        )
+        exposed = any("secret-credentials" in record.message for record in caplog.records)
         assert not exposed, "secret got exposed"
 
     def test_no_explicit_verify(self, adapter):
@@ -628,9 +652,7 @@ class TestSQLiteAdapter:
 
         # Verify state
         with adapter._pool.acquire() as conn:
-            cursor = conn.execute(
-                "SELECT state FROM work_items WHERE id = ?", (reserved_id,)
-            )
+            cursor = conn.execute("SELECT state FROM work_items WHERE id = ?", (reserved_id,))
             row = cursor.fetchone()
             assert row[0] == State.DONE.value
 
@@ -783,22 +805,22 @@ class TestSQLiteAdapter:
         """Test that RC_WORKITEM_OUTPUT_QUEUE_NAME overrides default output queue naming."""
         db_path = tmp_path / "test_workitems.db"
         files_dir = tmp_path / "files"
-        
+
         # Set custom output queue name
         monkeypatch.setenv("RC_WORKITEM_DB_PATH", str(db_path))
         monkeypatch.setenv("RC_WORKITEM_FILES_DIR", str(files_dir))
         monkeypatch.setenv("RC_WORKITEM_QUEUE_NAME", "qa_forms_output")
         monkeypatch.setenv("RC_WORKITEM_OUTPUT_QUEUE_NAME", "qa_forms_output_processed")
-        
+
         adapter = SQLiteAdapter()
-        
+
         # Verify the output queue name is customized
         assert adapter.output_queue_name == "qa_forms_output_processed"
         assert adapter.output_queue_name != f"{adapter.queue_name}_output"
-        
+
         # Create an output item and verify it goes to the custom queue
         item_id = adapter.create_output(None, {"test": "data"})
-        
+
         # Check the database to verify the queue name
         with adapter._pool.acquire() as conn:
             cursor = conn.execute(
@@ -813,20 +835,20 @@ class TestSQLiteAdapter:
         """Test that output queue defaults to {queue_name}_output for backward compatibility."""
         db_path = tmp_path / "test_workitems.db"
         files_dir = tmp_path / "files"
-        
+
         # Do NOT set RC_WORKITEM_OUTPUT_QUEUE_NAME
         monkeypatch.setenv("RC_WORKITEM_DB_PATH", str(db_path))
         monkeypatch.setenv("RC_WORKITEM_FILES_DIR", str(files_dir))
         monkeypatch.setenv("RC_WORKITEM_QUEUE_NAME", "qa_forms")
-        
+
         adapter = SQLiteAdapter()
-        
+
         # Verify default behavior is preserved
         assert adapter.output_queue_name == "qa_forms_output"
-        
+
         # Create an output item and verify it goes to the default queue
         item_id = adapter.create_output(None, {"test": "data"})
-        
+
         # Check the database to verify the queue name
         with adapter._pool.acquire() as conn:
             cursor = conn.execute(
@@ -872,6 +894,10 @@ def _create_redis_input_item(adapter, payload):
 
 
 @pytest.mark.redis
+@pytest.mark.skipif(
+    not _redis_service_available(),
+    reason="Redis integration tests require RC_REDIS_URL or localhost:6379",
+)
 class TestRedisAdapter:
     """Integration tests for RedisAdapter with real Redis instance."""
 
@@ -1077,28 +1103,28 @@ class TestRedisAdapter:
         """Test that RC_WORKITEM_OUTPUT_QUEUE_NAME overrides default output queue naming."""
         redis_url = os.getenv("RC_REDIS_URL", "redis://localhost:6379/0")
         files_dir = tmp_path / "files"
-        
+
         # Set custom output queue name
         monkeypatch.setenv("RC_REDIS_URL", redis_url)
         monkeypatch.setenv("RC_WORKITEM_FILES_DIR", str(files_dir))
         monkeypatch.setenv("RC_WORKITEM_QUEUE_NAME", "qa_forms_output")
         monkeypatch.setenv("RC_WORKITEM_OUTPUT_QUEUE_NAME", "qa_forms_output_processed")
-        
+
         adapter = RedisAdapter()
-        
+
         # Verify the output queue name is customized
         assert adapter.output_queue_name == "qa_forms_output_processed"
         assert adapter.output_queue_name != f"{adapter.queue_name}_output"
-        
+
         # Create an output item and verify it goes to the custom queue
         item_id = adapter.create_output(None, {"test": "data"})
-        
+
         # Check Redis to verify the queue name
         payload_key = adapter._key("payload", queue="qa_forms_output_processed", item_id=item_id)
         payload_data = adapter._client.hget(payload_key, "queue_name")
         assert payload_data is not None
         assert payload_data.decode() == "qa_forms_output_processed"
-        
+
         # Cleanup
         adapter._client.flushdb()
 
@@ -1106,32 +1132,36 @@ class TestRedisAdapter:
         """Test that output queue defaults to {queue_name}_output for backward compatibility."""
         redis_url = os.getenv("RC_REDIS_URL", "redis://localhost:6379/0")
         files_dir = tmp_path / "files"
-        
+
         # Do NOT set RC_WORKITEM_OUTPUT_QUEUE_NAME
         monkeypatch.setenv("RC_REDIS_URL", redis_url)
         monkeypatch.setenv("RC_WORKITEM_FILES_DIR", str(files_dir))
         monkeypatch.setenv("RC_WORKITEM_QUEUE_NAME", "qa_forms")
-        
+
         adapter = RedisAdapter()
-        
+
         # Verify default behavior is preserved
         assert adapter.output_queue_name == "qa_forms_output"
-        
+
         # Create an output item and verify it goes to the default queue
         item_id = adapter.create_output(None, {"test": "data"})
-        
+
         # Check Redis to verify the queue name
         payload_key = adapter._key("payload", queue="qa_forms_output", item_id=item_id)
         payload_data = adapter._client.hget(payload_key, "queue_name")
         assert payload_data is not None
         assert payload_data.decode() == "qa_forms_output"
-        
+
         # Cleanup
         adapter._client.flushdb()
 
 
 @pytest.mark.integration
 @pytest.mark.docdb
+@pytest.mark.skipif(
+    not _mongo_service_available(),
+    reason="DocumentDB integration tests require RC_MONGO_URL or localhost:27017",
+)
 class TestDocumentDBAdapter:
     """Integration tests for DocumentDBAdapter with real MongoDB instance."""
 
@@ -1406,29 +1436,29 @@ class TestDocumentDBAdapter:
         mongo_url = os.getenv("RC_MONGO_URL", "mongodb://localhost:27017")
         mongo_db = os.getenv("RC_MONGO_DB", "workitems_test")
         files_dir = tmp_path / "files"
-        
+
         # Set custom output queue name
         monkeypatch.setenv("DOCDB_URI", mongo_url)
         monkeypatch.setenv("DOCDB_DATABASE", mongo_db)
         monkeypatch.setenv("RC_WORKITEM_FILES_DIR", str(files_dir))
         monkeypatch.setenv("RC_WORKITEM_QUEUE_NAME", "qa_forms_output")
         monkeypatch.setenv("RC_WORKITEM_OUTPUT_QUEUE_NAME", "qa_forms_output_processed")
-        
+
         adapter = DocumentDBAdapter()
-        
+
         # Verify the output queue name is customized
         assert adapter.output_queue_name == "qa_forms_output_processed"
         assert adapter.output_queue_name != f"{adapter.queue_name}_output"
-        
+
         # Create an output item and verify it goes to the custom queue
         item_id = adapter.create_output(None, {"test": "data"})
-        
+
         # Check MongoDB to verify the queue name
         coll = adapter._collection(queue="qa_forms_output_processed")
         doc = coll.find_one({"item_id": item_id})
         assert doc is not None
         assert doc["queue_name"] == "qa_forms_output_processed"
-        
+
         # Cleanup
         client = MongoClient(mongo_url)
         client.drop_database(mongo_db)
@@ -1440,27 +1470,27 @@ class TestDocumentDBAdapter:
         mongo_url = os.getenv("RC_MONGO_URL", "mongodb://localhost:27017")
         mongo_db = os.getenv("RC_MONGO_DB", "workitems_test")
         files_dir = tmp_path / "files"
-        
+
         # Do NOT set RC_WORKITEM_OUTPUT_QUEUE_NAME
         monkeypatch.setenv("DOCDB_URI", mongo_url)
         monkeypatch.setenv("DOCDB_DATABASE", mongo_db)
         monkeypatch.setenv("RC_WORKITEM_FILES_DIR", str(files_dir))
         monkeypatch.setenv("RC_WORKITEM_QUEUE_NAME", "qa_forms")
-        
+
         adapter = DocumentDBAdapter()
-        
+
         # Verify default behavior is preserved
         assert adapter.output_queue_name == "qa_forms_output"
-        
+
         # Create an output item and verify it goes to the default queue
         item_id = adapter.create_output(None, {"test": "data"})
-        
+
         # Check MongoDB to verify the queue name
         coll = adapter._collection(queue="qa_forms_output")
         doc = coll.find_one({"item_id": item_id})
         assert doc is not None
         assert doc["queue_name"] == "qa_forms_output"
-        
+
         # Cleanup
         client = MongoClient(mongo_url)
         client.drop_database(mongo_db)

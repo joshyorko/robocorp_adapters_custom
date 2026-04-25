@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 # scripts/seed_redis_db.py
-import os, sys, json, base64, argparse
+import argparse
+import base64
+import json
+import os
+import sys
 from pathlib import Path
 
 # Add project root to path so "robocorp_adapters_custom" can be imported

@@ -1,7 +1,6 @@
 from unittest import mock
 
 import pytest
-
 from robocorp.workitems import inputs as _inputs
 from robocorp.workitems import outputs as _outputs
 from robocorp.workitems._context import Context

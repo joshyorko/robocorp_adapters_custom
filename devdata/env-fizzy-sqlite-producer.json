@@ -1,0 +1,15 @@
+{
+  "RC_WORKITEM_ADAPTER": "robocorp_adapters_custom._sqlite.SQLiteAdapter",
+  "RC_WORKITEM_DB_PATH": "devdata/fizzy_work_items.db",
+  "RC_WORKITEM_FILES_DIR": "devdata/work_item_files",
+  "RC_WORKITEM_QUEUE_NAME": "fizzy_cards",
+  "RC_WORKITEM_OUTPUT_QUEUE_NAME": "fizzy_worker_results",
+  "RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES": "30",
+  "FIZZY_BOARD_ID": "",
+  "FIZZY_SOURCE_COLUMN_ID": "",
+  "FIZZY_HANDOFF_COLUMN": "Synthesize & Verify",
+  "FIZZY_HANDOFF_COLUMN_ID": "",
+  "FIZZY_ALLOWED_PATHS": "[\"robocorp_adapters_custom/\", \"workitems_tests/\", \"docs/\", \"scripts/\", \"devdata/\", \"yamls/\"]",
+  "FIZZY_RUNNER_KIND": "codex",
+  "FIZZY_RUNNER_COMMAND": "codex exec --json"
+}

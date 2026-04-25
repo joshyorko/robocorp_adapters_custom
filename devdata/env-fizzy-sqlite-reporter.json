@@ -1,0 +1,9 @@
+{
+  "RC_WORKITEM_ADAPTER": "robocorp_adapters_custom._sqlite.SQLiteAdapter",
+  "RC_WORKITEM_DB_PATH": "devdata/fizzy_work_items.db",
+  "RC_WORKITEM_FILES_DIR": "devdata/work_item_files",
+  "RC_WORKITEM_QUEUE_NAME": "fizzy_worker_results",
+  "RC_WORKITEM_OUTPUT_QUEUE_NAME": "fizzy_reporter_done",
+  "RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES": "30",
+  "FIZZY_REPORTER_DRY_RUN": "true"
+}

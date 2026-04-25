@@ -195,6 +195,7 @@ This prevents confusing cascading names and makes database management much clear
 
 ## References & Documentation
 - Adapter implementation: `docs/CUSTOM_WORKITEM_ADAPTER_GUIDE.md`
+- Fizzy/Codex orchestration: `docs/FIZZY_CODEX_ORCHESTRATION.md`
 - Adapter interface: `docs/ADAPTER_RESEARCH_SUMMARY.md`
 - Producer-consumer architecture: `docs/# Producer-Consumer Architecture Migrati.md`
 - Task definitions: `yamls/robot.yaml`

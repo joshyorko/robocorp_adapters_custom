@@ -5,11 +5,11 @@ This script creates initial work items in the DocumentDB database for the produc
 Compatible with Amazon DocumentDB clusters and supports callid-based duplicate prevention.
 """
 
+import argparse
+import base64
 import json
 import os
 import sys
-import base64
-import argparse
 from pathlib import Path
 
 # Add project root to path
@@ -26,9 +26,7 @@ def load_env(env_json: Path):
 
 def main():
     """Main seeding function."""
-    ap = argparse.ArgumentParser(
-        description="Seed Amazon DocumentDB with initial work items."
-    )
+    ap = argparse.ArgumentParser(description="Seed Amazon DocumentDB with initial work items.")
     ap.add_argument(
         "--env",
         default="devdata/env-docdb-local-producer.json",
@@ -40,9 +38,7 @@ def main():
         help="Path to work-items.json (array of objects with at least 'payload')",
     )
     ap.add_argument("--queue", help="Override queue name from environment")
-    ap.add_argument(
-        "--callid-field", help="Field name to use as callid for duplicate prevention"
-    )
+    ap.add_argument("--callid-field", help="Field name to use as callid for duplicate prevention")
     args = ap.parse_args()
 
     # Load environment configuration
@@ -52,9 +48,7 @@ def main():
     try:
         from robocorp_adapters_custom.docdb_adapter import DocumentDBAdapter
     except ImportError as e:
-        print(
-            f"Error: Could not import DocumentDBAdapter. Make sure pymongo is installed: {e}"
-        )
+        print(f"Error: Could not import DocumentDBAdapter. Make sure pymongo is installed: {e}")
         print("Install with: pip install pymongo")
         sys.exit(1)
 
@@ -142,9 +136,7 @@ def main():
                 file_tuples.append((name, content))
 
             # Create work item
-            item_id = adapter.seed_input(
-                payload=payload, files=file_tuples, callid=callid
-            )
+            item_id = adapter.seed_input(payload=payload, files=file_tuples, callid=callid)
             created += 1
 
             # Show progress
@@ -176,8 +168,8 @@ def main():
     if created > 0:
         print("\nNext steps:")
         print(f"  rcc run -e {args.env} -t Producer")
-        print(f"  rcc run -e devdata/env-docdb-local-consumer.json -t Consumer")
-        print(f"  rcc run -e devdata/env-docdb-local-reporter.json -t Reporter")
+        print("  rcc run -e devdata/env-docdb-local-consumer.json -t Consumer")
+        print("  rcc run -e devdata/env-docdb-local-reporter.json -t Reporter")
 
     # Close adapter connection
     adapter.close()

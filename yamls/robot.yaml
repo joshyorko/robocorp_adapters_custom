@@ -8,6 +8,12 @@ tasks:
     shell: python -m robocorp.tasks run tasks.py -t consumer
   Reporter:
     shell: python -m robocorp.tasks run tasks.py -t reporter
+  FizzyProducer:
+    shell: python scripts/fizzy_seed_sqlite.py --env devdata/env-fizzy-sqlite-producer.json
+  FizzyWorker:
+    shell: python scripts/fizzy_worker_once.py --env devdata/env-fizzy-sqlite-worker.json
+  FizzyReporterDryRun:
+    shell: python scripts/fizzy_reporter_once.py --env devdata/env-fizzy-sqlite-reporter.json --dry-run
 
 
 devTasks:

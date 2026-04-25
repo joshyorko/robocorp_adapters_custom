@@ -32,13 +32,14 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-from robocorp.workitems._exceptions import ApplicationException, EmptyQueue
 from robocorp.workitems._adapters._base import BaseAdapter
+from robocorp.workitems._exceptions import ApplicationException, EmptyQueue
+
+from ._support import ThreadLocalConnectionPool, with_retry
 
 # Import from local modules for drop-in replacement functionality
 from ._types import State
 from ._utils import JSONType, required_env
-from ._support import ThreadLocalConnectionPool, with_retry
 
 LOGGER = logging.getLogger(__name__)
 
@@ -102,16 +103,12 @@ class SQLiteAdapter(BaseAdapter):
         """
         # Load configuration
         self.db_path = required_env("RC_WORKITEM_DB_PATH")
-        self.files_dir = Path(
-            os.getenv("RC_WORKITEM_FILES_DIR", "devdata/work_item_files")
-        )
+        self.files_dir = Path(os.getenv("RC_WORKITEM_FILES_DIR", "devdata/work_item_files"))
         self.queue_name = os.getenv("RC_WORKITEM_QUEUE_NAME", "default")
         self.output_queue_name = os.getenv(
             "RC_WORKITEM_OUTPUT_QUEUE_NAME", f"{self.queue_name}_output"
         )
-        self.orphan_timeout_minutes = int(
-            os.getenv("RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES", "30")
-        )
+        self.orphan_timeout_minutes = int(os.getenv("RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES", "30"))
 
         # Create directories
         self.files_dir.mkdir(parents=True, exist_ok=True)
@@ -160,14 +157,12 @@ class SQLiteAdapter(BaseAdapter):
         """
         with self._pool.acquire() as conn:
             # Create version table
-            conn.execute(
-                """
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS schema_version (
                     version INTEGER PRIMARY KEY,
                     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
-            """
-            )
+            """)
             conn.commit()
 
             # Detect current version
@@ -196,9 +191,7 @@ class SQLiteAdapter(BaseAdapter):
 
             LOGGER.info("Database schema initialized (version %d)", SCHEMA_VERSION)
 
-    def _apply_migration(
-        self, conn: sqlite3.Connection, target_version: int, migration_func
-    ):
+    def _apply_migration(self, conn: sqlite3.Connection, target_version: int, migration_func):
         """Apply a schema migration within a transaction.
 
         Args:
@@ -220,9 +213,7 @@ class SQLiteAdapter(BaseAdapter):
         except Exception as e:
             conn.rollback()
             LOGGER.error("Migration to version %d failed: %s", target_version, e)
-            raise ApplicationException(
-                f"Migration to version {target_version} failed: {e}"
-            )
+            raise ApplicationException(f"Migration to version {target_version} failed: {e}") from e
 
     def _migrate_to_v1(self, conn: sqlite3.Connection):
         """Migration v1: Create initial schema.
@@ -235,8 +226,7 @@ class SQLiteAdapter(BaseAdapter):
         - state: Processing state (PENDING/RESERVED/COMPLETED/FAILED)
         - created_at: Creation timestamp
         """
-        conn.execute(
-            f"""
+        conn.execute(f"""
             CREATE TABLE work_items (
                 id TEXT PRIMARY KEY,
                 queue_name TEXT NOT NULL,
@@ -246,23 +236,17 @@ class SQLiteAdapter(BaseAdapter):
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (parent_id) REFERENCES work_items(id)
             )
-        """
-        )
+        """)
 
-        conn.execute(
-            """
+        conn.execute("""
             CREATE INDEX idx_queue_state ON work_items(queue_name, state, created_at)
-        """
-        )
+        """)
 
-        conn.execute(
-            """
+        conn.execute("""
             CREATE INDEX idx_parent ON work_items(parent_id)
-        """
-        )
+        """)
 
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE work_item_files (
                 work_item_id TEXT NOT NULL,
                 filename TEXT NOT NULL,
@@ -271,8 +255,7 @@ class SQLiteAdapter(BaseAdapter):
                 PRIMARY KEY (work_item_id, filename),
                 FOREIGN KEY (work_item_id) REFERENCES work_items(id) ON DELETE CASCADE
             )
-        """
-        )
+        """)
 
         LOGGER.info("Created initial schema (v1)")
 
@@ -303,13 +286,11 @@ class SQLiteAdapter(BaseAdapter):
         conn.execute("ALTER TABLE work_items ADD COLUMN released_at TIMESTAMP")
 
         # Add partial index for orphan recovery queries
-        conn.execute(
-            f"""
+        conn.execute(f"""
             CREATE INDEX idx_orphan_check
             ON work_items(state, reserved_at)
             WHERE state='{ProcessingState.RESERVED.value}'
-        """
-        )
+        """)
 
         LOGGER.info("Added timestamp fields and orphan index (v3)")
 
@@ -348,9 +329,7 @@ class SQLiteAdapter(BaseAdapter):
         """
         with self._pool.acquire() as conn:
             try:
-                LOGGER.debug(
-                    "Reserving next input work item from queue: %s", self.queue_name
-                )
+                LOGGER.debug("Reserving next input work item from queue: %s", self.queue_name)
 
                 # Atomic reservation with RETURNING clause
                 cursor = conn.execute(
@@ -377,9 +356,7 @@ class SQLiteAdapter(BaseAdapter):
                 conn.commit()
 
                 if not result:
-                    raise EmptyQueue(
-                        f"No pending work items in queue: {self.queue_name}"
-                    )
+                    raise EmptyQueue(f"No pending work items in queue: {self.queue_name}")
 
                 item_id = result[0]
                 LOGGER.info("Reserved input work item: %s", item_id)
@@ -388,7 +365,7 @@ class SQLiteAdapter(BaseAdapter):
             except sqlite3.OperationalError as e:
                 if "database is locked" in str(e):
                     LOGGER.warning("Database locked, retrying: %s", e)
-                    raise DatabaseTemporarilyUnavailable(f"Database locked: {e}")
+                    raise DatabaseTemporarilyUnavailable(f"Database locked: {e}") from e
                 raise
 
     def release_input(
@@ -571,9 +548,7 @@ class SQLiteAdapter(BaseAdapter):
             ValueError: If work item not found
         """
         with self._pool.acquire() as conn:
-            cursor = conn.execute(
-                "SELECT payload FROM work_items WHERE id = ?", (item_id,)
-            )
+            cursor = conn.execute("SELECT payload FROM work_items WHERE id = ?", (item_id,))
             result = cursor.fetchone()
 
             if not result:
@@ -646,9 +621,7 @@ class SQLiteAdapter(BaseAdapter):
             result = cursor.fetchone()
 
             if not result:
-                raise FileNotFoundError(
-                    f"File not found: {name} (work item: {item_id})"
-                )
+                raise FileNotFoundError(f"File not found: {name} (work item: {item_id})")
 
             filepath = Path(result[0])
 
@@ -677,9 +650,7 @@ class SQLiteAdapter(BaseAdapter):
         item_dir.mkdir(parents=True, exist_ok=True)
         filepath = item_dir / name
 
-        LOGGER.debug(
-            "Adding file '%s' to work item %s (%d bytes)", name, item_id, len(content)
-        )
+        LOGGER.debug("Adding file '%s' to work item %s (%d bytes)", name, item_id, len(content))
 
         if filepath.exists():
             raise FileExistsError(f"File already exists: {name} (work item: {item_id})")
@@ -698,12 +669,10 @@ class SQLiteAdapter(BaseAdapter):
                     (item_id, name, str(filepath)),
                 )
                 conn.commit()
-            except sqlite3.IntegrityError:
+            except sqlite3.IntegrityError as e:
                 # Cleanup file if database insert fails
                 filepath.unlink(missing_ok=True)
-                raise FileExistsError(
-                    f"File already exists: {name} (work item: {item_id})"
-                )
+                raise FileExistsError(f"File already exists: {name} (work item: {item_id})") from e
 
     def remove_file(self, item_id: str, name: str):
         """Remove file attachment.
@@ -726,9 +695,7 @@ class SQLiteAdapter(BaseAdapter):
             result = cursor.fetchone()
 
             if not result:
-                raise FileNotFoundError(
-                    f"File not found: {name} (work item: {item_id})"
-                )
+                raise FileNotFoundError(f"File not found: {name} (work item: {item_id})")
 
             filepath = Path(result[0])
 
