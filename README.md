@@ -1,7 +1,10 @@
-# ![Project Logo](https://raw.githubusercontent.com/joshyorko/robocorp_adapters_custom/main/docs/logo.png)
+<p align="center">
+  <img src="docs/logo-fizzy.png" alt="robocorp_adapters_custom logo: Robocorp work item adapters plus Fizzy/Codex orchestration" width="760">
+</p>
+
 # robocorp_adapters_custom
 
-Custom Work Item Adapters for Robocorp Producer-Consumer Automation
+Custom Work Item Adapters for Robocorp Producer-Consumer Automation and Fizzy/Codex Orchestration
 
 ---
 
@@ -17,11 +20,13 @@ This repository provides custom adapters for Robocorp's workitems library, enabl
 - **Automatic Schema Migration**: SQLite adapter supports seamless schema upgrades.
 - **Distributed Processing**: Redis and DocumentDB adapters enable high-throughput, multi-worker scaling.
 - **Cloud-Native Support**: DocumentDB adapter optimized for AWS environments with TLS/SSL encryption and replica set support.
+- **Fizzy/Codex Orchestration**: Seed Fizzy cards as work items, run Codex-backed workers, and report proof back to Fizzy.
 
 ## Key Components
 - `_sqlite.py`, `_redis.py`, `_docdb.py`, `_yorko_control_room.py`: Custom adapters implementing the `BaseAdapter` interface.
 - `workitems_integration.py`: Dynamic adapter loader for seamless backend switching.
 - `scripts/config.py`: Loads and validates environment-based configuration.
+- `robocorp_adapters_custom/fizzy_orchestration.py`: Fizzy card normalization, worker execution, and result reporting helpers.
 - `scripts/seed_sqlite_db.py`, `scripts/seed_redis_db.py`, `scripts/seed_docdb_db.py`: Seed scripts for populating test data.
 - `yamls/robot.yaml`, `yamls/conda.yaml`: Task and environment definitions for RCC workflows.
 - `devdata/`: Environment configs, input/output data, and test artifacts.

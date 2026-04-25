@@ -17,21 +17,11 @@ Usage:
     - robocorp_adapters_custom._yorko_control_room.YorkoControlRoomAdapter
 """
 
-__version__ = "0.1.5"
-
-__all__ = [
-    "exceptions",
-    "fizzy_orchestration",
-    "workitems_integration",
-]
-
 # ruff: noqa: E402
 # Note: Module-level imports must occur after attribute injection to ensure
 # drop-in compatibility with robocorp.workitems package
 
 import sys
-
-__version__ = "0.1.5"
 
 # Inject our local utilities into robocorp.workitems modules to enable drop-in compatibility
 # This allows adapters to work seamlessly with the existing robocorp.workitems package
@@ -119,6 +109,8 @@ else:
     if robocorp_adapters is not None:
         robocorp_adapters.docdb = DocumentDBAdapter
 
+from . import fizzy_orchestration
+
 # T038-T040: Export adapter integration utilities
 from .workitems_integration import (
     get_adapter_instance,
@@ -126,6 +118,8 @@ from .workitems_integration import (
     is_custom_adapter_enabled,
     load_adapter_class,
 )
+
+__version__ = "0.1.5"
 
 __all__ = [
     "BaseAdapter",
