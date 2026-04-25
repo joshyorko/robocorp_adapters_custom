@@ -71,7 +71,7 @@ def validate_adapter_config(adapter_class: str, config: Dict[str, object]) -> No
     elif "redis" in acl:
         if not config.get("redis_host"):
             raise ValueError(
-                "REDIS_HOST environment variable required for Redis adapter. " "Example: localhost"
+                "REDIS_HOST environment variable required for Redis adapter. Example: localhost"
             )
 
     elif "postgres" in acl or "postgresql" in acl:
