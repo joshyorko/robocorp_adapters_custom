@@ -188,11 +188,17 @@ def run_worker_once(
             check=False,
         )
         succeeded = completed.returncode == 0
+        runner_data = payload.get("runner", {})
+        runner_payload: dict[str, JSONType] = (
+            dict(runner_data) if isinstance(runner_data, dict) else {}
+        )
+        runner_payload["command"] = command
+
         result_payload: dict[str, JSONType] = {
             "source": "fizzy",
             "card": card,
             "workflow": payload.get("workflow", {}),
-            "runner": payload.get("runner", {}),
+            "runner": runner_payload,
             "result": {
                 "status": "completed" if succeeded else "failed",
                 "returncode": completed.returncode,
