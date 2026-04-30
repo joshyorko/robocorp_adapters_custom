@@ -571,13 +571,13 @@ class TestAdapterFactory:
             DocumentDBAdapter()
 
 
-class _FakeMongoAdmin:
+class FakeMongoAdmin:
     def command(self, name):
         assert name == "ping"
         return {"ok": 1.0}
 
 
-class _FakeMongoCollection:
+class FakeMongoCollection:
     def __init__(self):
         self.docs = []
         self.indexes = []
@@ -596,21 +596,21 @@ class _FakeMongoCollection:
         return None
 
 
-class _FakeMongoDatabase:
+class FakeMongoDatabase:
     def __init__(self):
         self.collections = {}
 
     def __getitem__(self, name):
-        return self.collections.setdefault(name, _FakeMongoCollection())
+        return self.collections.setdefault(name, FakeMongoCollection())
 
 
-class _FakeMongoClient:
+class FakeMongoClient:
     def __init__(self):
-        self.admin = _FakeMongoAdmin()
+        self.admin = FakeMongoAdmin()
         self.databases = {}
 
     def __getitem__(self, name):
-        return self.databases.setdefault(name, _FakeMongoDatabase())
+        return self.databases.setdefault(name, FakeMongoDatabase())
 
 
 class TestDocumentDBAdapterOutputQueueConfig:
@@ -620,7 +620,7 @@ class TestDocumentDBAdapterOutputQueueConfig:
         clients = []
 
         def mongo_client(*args, **kwargs):
-            client = _FakeMongoClient()
+            client = FakeMongoClient()
             clients.append(client)
             return client
 
