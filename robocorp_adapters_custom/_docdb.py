@@ -203,12 +203,9 @@ class DocumentDBAdapter(BaseAdapter):
             f"{self.queue_name}_output" if self.auto_append_output_suffix else self.queue_name
         )
         output_queue_name = os.getenv("RC_WORKITEM_OUTPUT_QUEUE_NAME")
-        self.output_queue_name = (
-            output_queue_name.strip()
-            if output_queue_name is not None
-            else default_output_queue_name
-        )
-        if not self.output_queue_name:
+        if output_queue_name:
+            self.output_queue_name = output_queue_name.strip() or default_output_queue_name
+        else:
             self.output_queue_name = default_output_queue_name
         if self.output_queue_name == self.queue_name:
             LOGGER.warning(
