@@ -136,7 +136,9 @@ class DocumentDBAdapter(BaseAdapter):
         DOCDB_URI: MongoDB connection URI (required)
         DOCDB_DATABASE: Database name (required)
         RC_WORKITEM_QUEUE_NAME: Queue identifier (default: default)
-        RC_WORKITEM_OUTPUT_QUEUE_NAME: Output queue name (optional, default: {queue_name}_output)
+        RC_WORKITEM_OUTPUT_QUEUE_NAME: Output queue name (optional; if explicitly set, this
+            value is used. Otherwise, the effective default is {queue_name}_output when
+            RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX is true, or {queue_name} when it is false)
         RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX: Auto-append _output when no output queue is set
             (default: true)
         RC_WORKITEM_FILES_DIR: Files directory (default: devdata/work_item_files)
