@@ -27,6 +27,8 @@ def get_adapter_config() -> Dict[str, object]:
         "adapter_class": os.getenv("RC_WORKITEM_ADAPTER", ""),
         # Common configuration
         "queue_name": os.getenv("RC_WORKITEM_QUEUE_NAME", "default"),
+        "output_queue_name": os.getenv("RC_WORKITEM_OUTPUT_QUEUE_NAME", ""),
+        "auto_append_output_suffix": os.getenv("RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX", "true"),
         "files_dir": os.getenv("RC_WORKITEM_FILES_DIR", "devdata/work_item_files"),
         "orphan_timeout_minutes": int(os.getenv("RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES", "30")),
         # SQLite configuration

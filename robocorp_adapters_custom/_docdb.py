@@ -94,6 +94,14 @@ OperationFailure = _OperationFailure
 
 # File size threshold for GridFS (1MB)
 GRIDFS_THRESHOLD = 1_000_000
+FALSE_VALUES = {"0", "false", "no", "off"}
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() not in FALSE_VALUES
 
 
 class ProcessingState(str, Enum):
@@ -137,14 +145,21 @@ class DocumentDBAdapter(BaseAdapter):
         DOCDB_DATABASE: Database name (required)
         RC_WORKITEM_QUEUE_NAME: Queue identifier (default: default)
         RC_WORKITEM_OUTPUT_QUEUE_NAME: Output queue name (optional, default: {queue_name}_output)
+        RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX: Auto-append _output when no output queue is set
+            (default: true)
         RC_WORKITEM_FILES_DIR: Files directory (default: devdata/work_item_files)
         RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES: Orphan timeout (default: 30)
 
     lazydocs: ignore
     """
 
-    def __init__(self):
+    def __init__(self, auto_append_output_suffix: Optional[bool] = None):
         """Initialize DocumentDBAdapter.
+
+        Args:
+            auto_append_output_suffix: Whether to default output queue names to
+                ``{queue_name}_output`` when ``RC_WORKITEM_OUTPUT_QUEUE_NAME`` is not set.
+                If omitted, ``RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX`` controls the behavior.
 
         Raises:
             ImportError: If pymongo package not installed
@@ -177,8 +192,14 @@ class DocumentDBAdapter(BaseAdapter):
 
         self.docdb_database = required_env("DOCDB_DATABASE")
         self.queue_name = os.getenv("RC_WORKITEM_QUEUE_NAME", "default")
+        if auto_append_output_suffix is None:
+            auto_append_output_suffix = _env_bool("RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX", True)
+        self.auto_append_output_suffix = auto_append_output_suffix
+        default_output_queue_name = (
+            f"{self.queue_name}_output" if self.auto_append_output_suffix else self.queue_name
+        )
         self.output_queue_name = os.getenv(
-            "RC_WORKITEM_OUTPUT_QUEUE_NAME", f"{self.queue_name}_output"
+            "RC_WORKITEM_OUTPUT_QUEUE_NAME", default_output_queue_name
         )
         self.files_dir = Path(os.getenv("RC_WORKITEM_FILES_DIR", "devdata/work_item_files"))
         self.orphan_timeout_minutes = int(os.getenv("RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES", "30"))
