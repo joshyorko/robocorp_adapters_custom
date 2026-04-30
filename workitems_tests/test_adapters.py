@@ -615,7 +615,7 @@ class _FakeMongoClient:
 class TestDocumentDBAdapterOutputQueueConfig:
     @pytest.fixture
     def docdb_module(self, monkeypatch):
-        module = importlib.import_module("robocorp.workitems._adapters._docdb")
+        module = importlib.import_module("robocorp_adapters_custom._docdb")
         clients = []
 
         def mongo_client(*args, **kwargs):

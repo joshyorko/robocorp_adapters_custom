@@ -94,14 +94,14 @@ OperationFailure = _OperationFailure
 
 # File size threshold for GridFS (1MB)
 GRIDFS_THRESHOLD = 1_000_000
-FALSE_VALUES = {"0", "false", "no", "off"}
+_FALSE_ENV_VALUES = {"0", "false", "no", "off"}
 
 
 def _env_bool(name: str, default: bool) -> bool:
     value = os.getenv(name)
     if value is None:
         return default
-    return value.strip().lower() not in FALSE_VALUES
+    return value.strip().lower() not in _FALSE_ENV_VALUES
 
 
 class ProcessingState(str, Enum):
