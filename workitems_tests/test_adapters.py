@@ -587,6 +587,7 @@ class _FakeMongoCollection:
 
     def insert_one(self, doc):
         self.docs.append(copy.deepcopy(doc))
+        return mock.Mock(inserted_id=doc.get("_id"))
 
     def find_one(self, query):
         for doc in self.docs:

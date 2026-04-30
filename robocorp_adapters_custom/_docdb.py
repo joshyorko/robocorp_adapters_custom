@@ -96,13 +96,6 @@ OperationFailure = _OperationFailure
 GRIDFS_THRESHOLD = 1_000_000
 
 
-def _env_bool(name: str, default: bool) -> bool:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    return value.strip().lower() not in {"0", "false", "no", "off"}
-
-
 class ProcessingState(str, Enum):
     """Lifecycle states tracked in DocumentDB collection."""
 
@@ -192,7 +185,16 @@ class DocumentDBAdapter(BaseAdapter):
         self.docdb_database = required_env("DOCDB_DATABASE")
         self.queue_name = os.getenv("RC_WORKITEM_QUEUE_NAME", "default")
         if auto_append_output_suffix is None:
-            auto_append_output_suffix = _env_bool("RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX", True)
+            auto_append_output_suffix_env = os.getenv("RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX")
+            if auto_append_output_suffix_env is None:
+                auto_append_output_suffix = True
+            else:
+                auto_append_output_suffix = auto_append_output_suffix_env.strip().lower() not in {
+                    "0",
+                    "false",
+                    "no",
+                    "off",
+                }
         self.auto_append_output_suffix = auto_append_output_suffix
         default_output_queue_name = (
             f"{self.queue_name}_output" if self.auto_append_output_suffix else self.queue_name
