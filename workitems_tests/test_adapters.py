@@ -571,6 +571,41 @@ class TestAdapterFactory:
             DocumentDBAdapter()
 
 
+class TestAdapterConfig:
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            ("false", False),
+            ("0", False),
+            ("no", False),
+            ("off", False),
+            ("true", True),
+            ("", True),
+        ],
+    )
+    def test_auto_append_output_suffix_is_bool(self, monkeypatch, value, expected):
+        config_module = importlib.import_module("scripts.config")
+        monkeypatch.setenv(
+            "RC_WORKITEM_ADAPTER", "robocorp_adapters_custom._docdb.DocumentDBAdapter"
+        )
+        monkeypatch.setenv("RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX", value)
+
+        config = config_module.get_adapter_config()
+
+        assert config["auto_append_output_suffix"] is expected
+
+    def test_auto_append_output_suffix_defaults_true(self, monkeypatch):
+        config_module = importlib.import_module("scripts.config")
+        monkeypatch.setenv(
+            "RC_WORKITEM_ADAPTER", "robocorp_adapters_custom._docdb.DocumentDBAdapter"
+        )
+        monkeypatch.delenv("RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX", raising=False)
+
+        config = config_module.get_adapter_config()
+
+        assert config["auto_append_output_suffix"] is True
+
+
 class FakeMongoAdmin:
     def command(self, name):
         assert name == "ping"
@@ -647,14 +682,16 @@ class TestDocumentDBAdapterOutputQueueConfig:
         assert adapter.output_queue_name == "qa_forms_input_output"
 
     def test_auto_append_output_suffix_can_be_disabled_by_constructor(
-        self, docdb_module, docdb_env
+        self, docdb_module, docdb_env, caplog
     ):
         module, clients = docdb_module
 
-        adapter = module.DocumentDBAdapter(auto_append_output_suffix=False)
+        with caplog.at_level(logging.WARNING):
+            adapter = module.DocumentDBAdapter(auto_append_output_suffix=False)
         item_id = adapter.create_output(None, {"test": "data"})
 
         assert adapter.output_queue_name == "qa_forms_input"
+        assert "output queue matches input queue" in caplog.text
         db = clients[0]["workitems_test"]
         assert set(db.collections) == {"qa_forms_input_work_items"}
         doc = db["qa_forms_input_work_items"].find_one({"item_id": item_id})
@@ -680,6 +717,17 @@ class TestDocumentDBAdapterOutputQueueConfig:
         adapter = module.DocumentDBAdapter(auto_append_output_suffix=False)
 
         assert adapter.output_queue_name == "qa_forms_processing"
+
+    @pytest.mark.parametrize("value", ["", "   "])
+    def test_blank_output_queue_name_falls_back_to_default(
+        self, docdb_module, docdb_env, monkeypatch, value
+    ):
+        module, _ = docdb_module
+        monkeypatch.setenv("RC_WORKITEM_OUTPUT_QUEUE_NAME", value)
+
+        adapter = module.DocumentDBAdapter()
+
+        assert adapter.output_queue_name == "qa_forms_input_output"
 
 
 class TestSQLiteAdapter:
