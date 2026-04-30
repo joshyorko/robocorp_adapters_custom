@@ -204,7 +204,7 @@ class DocumentDBAdapter(BaseAdapter):
         )
         output_queue_name = os.getenv("RC_WORKITEM_OUTPUT_QUEUE_NAME")
         if output_queue_name:
-            # Treat whitespace-only explicit values as unset so collection names stay valid.
+            # Treat blank or whitespace-only explicit values as unset so collection names stay valid.
             self.output_queue_name = output_queue_name.strip() or default_output_queue_name
         else:
             self.output_queue_name = default_output_queue_name

@@ -18,8 +18,8 @@ def _env_bool(name: str, default: bool) -> bool:
     """Parse an environment variable as a boolean.
 
     Missing values use ``default``. The values ``0``, ``false``, ``no``, and
-    ``off`` are false, case-insensitively; all other values, including an
-    explicitly empty string, are true.
+    ``off`` are false, case-insensitively; all other values, including empty
+    and whitespace-only strings, are true.
     """
     value = os.getenv(name)
     if value is None:

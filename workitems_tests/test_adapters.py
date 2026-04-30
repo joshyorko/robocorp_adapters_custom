@@ -583,6 +583,7 @@ class TestAdapterConfig:
             ("off", False),
             ("true", True),
             ("", True),
+            ("   ", True),
         ],
     )
     def test_auto_append_output_suffix_is_bool(self, monkeypatch, value, expected):
