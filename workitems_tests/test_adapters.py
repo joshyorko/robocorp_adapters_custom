@@ -21,6 +21,8 @@ from robocorp.workitems._requests import DEBUG, HTTPError
 # Import from our local _types module (mapped via sys.modules in __init__.py)
 from robocorp.workitems._types import State
 
+from scripts import config as adapter_config
+
 from .mocks import MOCK_FILES, PAYLOAD_FIRST, PAYLOAD_SECOND
 
 # TTL_WEEK_SECONDS is defined in our local _types module
@@ -584,24 +586,22 @@ class TestAdapterConfig:
         ],
     )
     def test_auto_append_output_suffix_is_bool(self, monkeypatch, value, expected):
-        config_module = importlib.import_module("scripts.config")
         monkeypatch.setenv(
             "RC_WORKITEM_ADAPTER", "robocorp_adapters_custom._docdb.DocumentDBAdapter"
         )
         monkeypatch.setenv("RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX", value)
 
-        config = config_module.get_adapter_config()
+        config = adapter_config.get_adapter_config()
 
         assert config["auto_append_output_suffix"] is expected
 
     def test_auto_append_output_suffix_defaults_true(self, monkeypatch):
-        config_module = importlib.import_module("scripts.config")
         monkeypatch.setenv(
             "RC_WORKITEM_ADAPTER", "robocorp_adapters_custom._docdb.DocumentDBAdapter"
         )
         monkeypatch.delenv("RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX", raising=False)
 
-        config = config_module.get_adapter_config()
+        config = adapter_config.get_adapter_config()
 
         assert config["auto_append_output_suffix"] is True
 
