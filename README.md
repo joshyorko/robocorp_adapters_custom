@@ -20,13 +20,14 @@ This repository provides custom adapters for Robocorp's workitems library, enabl
 - **Automatic Schema Migration**: SQLite adapter supports seamless schema upgrades.
 - **Distributed Processing**: Redis and DocumentDB adapters enable high-throughput, multi-worker scaling.
 - **Cloud-Native Support**: DocumentDB adapter optimized for AWS environments with TLS/SSL encryption and replica set support.
-- **Fizzy/Codex Orchestration**: Seed Fizzy cards as work items, run Codex-backed workers, and report proof back to Fizzy.
+- **Fizzy/Codex Orchestration**: Seed Fizzy cards as work items, run Codex-backed workers, and report proof back to Fizzy from a local CLI-driven flow.
 
 ## Key Components
 - `_sqlite.py`, `_redis.py`, `_docdb.py`, `_yorko_control_room.py`: Custom adapters implementing the `BaseAdapter` interface.
 - `workitems_integration.py`: Dynamic adapter loader for seamless backend switching.
 - `scripts/config.py`: Loads and validates environment-based configuration.
 - `robocorp_adapters_custom/fizzy_orchestration.py`: Fizzy card normalization, worker execution, and result reporting helpers.
+- `scripts/fizzy_seed_sqlite.py`, `scripts/fizzy_worker_once.py`, `scripts/fizzy_reporter_once.py`: one-shot local scripts for Fizzy/Codex workflows.
 - `scripts/seed_sqlite_db.py`, `scripts/seed_redis_db.py`, `scripts/seed_docdb_db.py`: Seed scripts for populating test data.
 - `yamls/robot.yaml`, `yamls/conda.yaml`: Task and environment definitions for RCC workflows.
 - `devdata/`: Environment configs, input/output data, and test artifacts.
@@ -122,6 +123,25 @@ rcc run -t Producer -e devdata/env-yorko-control-room-producer.json
 rcc run -t Consumer -e devdata/env-yorko-control-room-consumer.json
 ```
 See [Yorko Control Room Adapter Guide](docs/YORKO_CONTROL_ROOM_ADAPTER.md) for detailed setup.
+
+### 5. Fizzy/Codex Orchestration
+From a board/column-configured environment, run the one-shot orchestration flow:
+
+```sh
+rcc run -t FizzyProducer -e devdata/env-fizzy-sqlite-producer.json
+rcc run -t FizzyWorker -e devdata/env-fizzy-sqlite-worker.json
+rcc run -t FizzyReporterDryRun -e devdata/env-fizzy-sqlite-reporter.json
+```
+
+For script-based execution with the same flow:
+
+```sh
+python scripts/fizzy_seed_sqlite.py --env devdata/env-fizzy-sqlite-producer.json --force
+python scripts/fizzy_worker_once.py --env devdata/env-fizzy-sqlite-worker.json
+python scripts/fizzy_reporter_once.py --env devdata/env-fizzy-sqlite-reporter.json --dry-run
+```
+
+Only the producer step requires board-specific IDs (`FIZZY_BOARD_ID`, `FIZZY_SOURCE_COLUMN_ID`) in your shell or task env, which keeps committed samples non-sensitive.
 
 ### 4. Seeding and Debugging
 - Seed SQLite: `python scripts/seed_sqlite_db.py`

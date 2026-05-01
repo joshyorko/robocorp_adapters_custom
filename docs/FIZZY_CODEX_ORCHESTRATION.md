@@ -36,6 +36,19 @@ Each queued card is normalized into this payload shape:
 
 The helper API is in `robocorp_adapters_custom.fizzy_orchestration`.
 
+## Required Environment
+
+Set the orchestration env variables via shell or one of the provided files:
+
+- `FIZZY_BOARD_ID`: Target board to pull cards from.
+- `FIZZY_SOURCE_COLUMN_ID`: Optional source column filter; leave blank to pull all ready columns.
+- `FIZZY_HANDOFF_COLUMN` / `FIZZY_HANDOFF_COLUMN_ID`: Optional final card column on success.
+- `FIZZY_ALLOWED_PATHS`: JSON list used by runner prompt templates.
+- `FIZZY_RUNNER_KIND`: Runner kind (defaults to `codex`).
+- `FIZZY_RUNNER_COMMAND`: Command executed for each card.
+- `FIZZY_RUNNER_TIMEOUT_SECONDS`: Optional worker timeout.
+- `FIZZY_REPORTER_DRY_RUN`: `true`/`1` for dry-run reporter behavior.
+
 ## Three-Stage Flow
 
 1. Producer: calls the local `fizzy` CLI, normalizes cards, and seeds input work items.
@@ -80,9 +93,19 @@ python scripts/fizzy_reporter_once.py --env devdata/env-fizzy-sqlite-reporter.js
 
 Equivalent RCC tasks are available in `yamls/robot.yaml` as `FizzyProducer`, `FizzyWorker`, and `FizzyReporterDryRun`.
 
+To run the full local flow in order, use:
+
+```sh
+rcc run -t FizzyProducer -e devdata/env-fizzy-sqlite-producer.json
+rcc run -t FizzyWorker -e devdata/env-fizzy-sqlite-worker.json
+rcc run -t FizzyReporterDryRun -e devdata/env-fizzy-sqlite-reporter.json
+```
+
 ## Idempotency
 
 For SQLite, `enqueue_fizzy_cards()` prevents duplicate queue entries by matching `source=fizzy`, `card.board_id`, and `card.number` in the current input queue. Use `--force` on `scripts/fizzy_seed_sqlite.py` only when intentionally re-queuing the same card.
+
+`FizzyProducer`, `FizzyWorker`, and `FizzyReporterDryRun` are also safe to execute as `scripts/...` equivalents when you want local step-by-step validation.
 
 ## Result Propagation
 
