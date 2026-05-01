@@ -21,6 +21,8 @@ from robocorp.workitems._requests import DEBUG, HTTPError
 # Import from our local _types module (mapped via sys.modules in __init__.py)
 from robocorp.workitems._types import State
 
+from scripts import config as adapter_config
+
 from .mocks import MOCK_FILES, PAYLOAD_FIRST, PAYLOAD_SECOND
 
 # TTL_WEEK_SECONDS is defined in our local _types module
@@ -569,6 +571,164 @@ class TestAdapterFactory:
 
         with pytest.raises(ImportError, match=r"robocorp-workitems\[docdb\]"):
             DocumentDBAdapter()
+
+
+class TestAdapterConfig:
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            ("false", False),
+            ("0", False),
+            ("no", False),
+            ("off", False),
+            ("true", True),
+            ("", True),
+            ("   ", True),
+        ],
+    )
+    def test_auto_append_output_suffix_is_bool(self, monkeypatch, value, expected):
+        monkeypatch.setenv(
+            "RC_WORKITEM_ADAPTER", "robocorp_adapters_custom._docdb.DocumentDBAdapter"
+        )
+        monkeypatch.setenv("RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX", value)
+
+        config = adapter_config.get_adapter_config()
+
+        assert config["auto_append_output_suffix"] is expected
+
+    def test_auto_append_output_suffix_defaults_true(self, monkeypatch):
+        monkeypatch.setenv(
+            "RC_WORKITEM_ADAPTER", "robocorp_adapters_custom._docdb.DocumentDBAdapter"
+        )
+        monkeypatch.delenv("RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX", raising=False)
+
+        config = adapter_config.get_adapter_config()
+
+        assert config["auto_append_output_suffix"] is True
+
+
+class FakeMongoAdmin:
+    def command(self, name):
+        assert name == "ping"
+        return {"ok": 1.0}
+
+
+class FakeMongoCollection:
+    def __init__(self):
+        self.docs = []
+        self.indexes = []
+
+    def create_index(self, *args, **kwargs):
+        self.indexes.append((args, kwargs))
+
+    def insert_one(self, doc):
+        self.docs.append(copy.deepcopy(doc))
+        return mock.Mock(inserted_id=doc.get("_id"))
+
+    def find_one(self, query):
+        for doc in self.docs:
+            if all(doc.get(key) == value for key, value in query.items()):
+                return copy.deepcopy(doc)
+        return None
+
+
+class FakeMongoDatabase:
+    def __init__(self):
+        self.collections = {}
+
+    def __getitem__(self, name):
+        return self.collections.setdefault(name, FakeMongoCollection())
+
+
+class FakeMongoClient:
+    def __init__(self):
+        self.admin = FakeMongoAdmin()
+        self.databases = {}
+
+    def __getitem__(self, name):
+        return self.databases.setdefault(name, FakeMongoDatabase())
+
+
+class TestDocumentDBAdapterOutputQueueConfig:
+    @pytest.fixture
+    def docdb_module(self, monkeypatch):
+        module = importlib.import_module("robocorp_adapters_custom._docdb")
+        clients = []
+
+        def mongo_client(*args, **kwargs):
+            client = FakeMongoClient()
+            clients.append(client)
+            return client
+
+        monkeypatch.setattr(module, "_pymongo_available", True)
+        monkeypatch.setattr(module, "MongoClient", mongo_client)
+        monkeypatch.setattr(module, "GridFS", lambda db: object())
+
+        return module, clients
+
+    @pytest.fixture
+    def docdb_env(self, monkeypatch, tmp_path):
+        monkeypatch.setenv("DOCDB_URI", "mongodb://localhost:27017")
+        monkeypatch.setenv("DOCDB_DATABASE", "workitems_test")
+        monkeypatch.setenv("RC_WORKITEM_FILES_DIR", str(tmp_path / "files"))
+        monkeypatch.setenv("RC_WORKITEM_QUEUE_NAME", "qa_forms_input")
+        monkeypatch.delenv("RC_WORKITEM_OUTPUT_QUEUE_NAME", raising=False)
+        monkeypatch.delenv("RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX", raising=False)
+
+    def test_default_output_queue_name_backward_compatibility(self, docdb_module, docdb_env):
+        module, _ = docdb_module
+
+        adapter = module.DocumentDBAdapter()
+
+        assert adapter.output_queue_name == "qa_forms_input_output"
+
+    def test_auto_append_output_suffix_can_be_disabled_by_constructor(
+        self, docdb_module, docdb_env, caplog
+    ):
+        module, clients = docdb_module
+
+        with caplog.at_level(logging.WARNING):
+            adapter = module.DocumentDBAdapter(auto_append_output_suffix=False)
+        item_id = adapter.create_output(None, {"test": "data"})
+
+        assert adapter.output_queue_name == "qa_forms_input"
+        assert "output queue matches input queue" in caplog.text
+        db = clients[0]["workitems_test"]
+        assert set(db.collections) == {"qa_forms_input_work_items"}
+        doc = db["qa_forms_input_work_items"].find_one({"item_id": item_id})
+        assert doc is not None
+        assert doc["queue_name"] == "qa_forms_input"
+
+    def test_auto_append_output_suffix_can_be_disabled_by_env(
+        self, docdb_module, docdb_env, monkeypatch
+    ):
+        module, _ = docdb_module
+        monkeypatch.setenv("RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX", "false")
+
+        adapter = module.DocumentDBAdapter()
+
+        assert adapter.output_queue_name == "qa_forms_input"
+
+    def test_explicit_output_queue_name_overrides_disabled_auto_suffix(
+        self, docdb_module, docdb_env, monkeypatch
+    ):
+        module, _ = docdb_module
+        monkeypatch.setenv("RC_WORKITEM_OUTPUT_QUEUE_NAME", "qa_forms_processing")
+
+        adapter = module.DocumentDBAdapter(auto_append_output_suffix=False)
+
+        assert adapter.output_queue_name == "qa_forms_processing"
+
+    @pytest.mark.parametrize("value", ["", "   "])
+    def test_blank_output_queue_name_falls_back_to_default(
+        self, docdb_module, docdb_env, monkeypatch, value
+    ):
+        module, _ = docdb_module
+        monkeypatch.setenv("RC_WORKITEM_OUTPUT_QUEUE_NAME", value)
+
+        adapter = module.DocumentDBAdapter()
+
+        assert adapter.output_queue_name == "qa_forms_input_output"
 
 
 class TestSQLiteAdapter:

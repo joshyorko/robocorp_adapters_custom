@@ -136,15 +136,25 @@ class DocumentDBAdapter(BaseAdapter):
         DOCDB_URI: MongoDB connection URI (required)
         DOCDB_DATABASE: Database name (required)
         RC_WORKITEM_QUEUE_NAME: Queue identifier (default: default)
-        RC_WORKITEM_OUTPUT_QUEUE_NAME: Output queue name (optional, default: {queue_name}_output)
+        RC_WORKITEM_OUTPUT_QUEUE_NAME: Output queue name (optional; if explicitly set, this
+            value is used. Otherwise, the effective default is {queue_name}_output when
+            RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX is true, or {queue_name} when it is false)
+        RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX: Auto-append _output when no output queue is set
+            (default: true). When false and no explicit output queue is set, outputs are created
+            in the input queue and can be consumed again by reserve_input().
         RC_WORKITEM_FILES_DIR: Files directory (default: devdata/work_item_files)
         RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES: Orphan timeout (default: 30)
 
     lazydocs: ignore
     """
 
-    def __init__(self):
+    def __init__(self, auto_append_output_suffix: Optional[bool] = None):
         """Initialize DocumentDBAdapter.
+
+        Args:
+            auto_append_output_suffix: Whether to default output queue names to
+                ``{queue_name}_output`` when ``RC_WORKITEM_OUTPUT_QUEUE_NAME`` is not set.
+                If omitted, ``RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX`` controls the behavior.
 
         Raises:
             ImportError: If pymongo package not installed
@@ -177,9 +187,34 @@ class DocumentDBAdapter(BaseAdapter):
 
         self.docdb_database = required_env("DOCDB_DATABASE")
         self.queue_name = os.getenv("RC_WORKITEM_QUEUE_NAME", "default")
-        self.output_queue_name = os.getenv(
-            "RC_WORKITEM_OUTPUT_QUEUE_NAME", f"{self.queue_name}_output"
+        if auto_append_output_suffix is None:
+            auto_append_output_suffix_env = os.getenv("RC_WORKITEM_AUTO_APPEND_OUTPUT_SUFFIX")
+            if auto_append_output_suffix_env is None:
+                auto_append_output_suffix = True
+            else:
+                auto_append_output_suffix = auto_append_output_suffix_env.strip().lower() not in {
+                    "0",
+                    "false",
+                    "no",
+                    "off",
+                }
+        self.auto_append_output_suffix = auto_append_output_suffix
+        default_output_queue_name = (
+            f"{self.queue_name}_output" if self.auto_append_output_suffix else self.queue_name
         )
+        output_queue_name = os.getenv("RC_WORKITEM_OUTPUT_QUEUE_NAME")
+        if output_queue_name:
+            # Treat blank or whitespace-only explicit values as unset so collection names stay valid.
+            self.output_queue_name = output_queue_name.strip() or default_output_queue_name
+        else:
+            self.output_queue_name = default_output_queue_name
+        if self.output_queue_name == self.queue_name:
+            LOGGER.warning(
+                "DocumentDB output queue matches input queue %r; created outputs may be "
+                "reserved again as inputs unless the workflow stops or uses an explicit "
+                "RC_WORKITEM_OUTPUT_QUEUE_NAME.",
+                self.queue_name,
+            )
         self.files_dir = Path(os.getenv("RC_WORKITEM_FILES_DIR", "devdata/work_item_files"))
         self.orphan_timeout_minutes = int(os.getenv("RC_WORKITEM_ORPHAN_TIMEOUT_MINUTES", "30"))
         self.file_threshold = int(
